@@ -3,6 +3,7 @@
 {
   imports = [
     ./modules/packages.nix
+    ../shell/hm.nix
   ];
 
   # Home Manager needs this
@@ -30,11 +31,6 @@
         fi
       '';
     };
-
-    starship = {
-      enable = true;
-    };
-
     # Git configuration management moved to Home Manager
     # OS (.os) provides git binary, Home Manager manages user config
     git = {

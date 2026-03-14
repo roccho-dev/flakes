@@ -1,6 +1,8 @@
 { config, pkgs, ... }:
 
 {
+  imports = [ ../../shell/nixos.nix ];
+
   # Nix configuration
   nix = {
     package = pkgs.nix;
@@ -17,26 +19,6 @@
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "docker" ];
   };
-
-  # System packages - complete inheritance from /etc/nixos/configuration.nix
-  environment.systemPackages = with pkgs; [
-    vim
-    wget
-    curl
-    git
-    gh
-    htop
-    lazygit
-    yazi
-    bash-language-server
-    fzf
-    jq
-    yq
-    fd
-    ripgrep
-    bat
-  ];
-
   # SSH configuration - security enhanced
   services.openssh = {
     enable = true;
