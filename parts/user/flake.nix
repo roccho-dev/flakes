@@ -22,7 +22,7 @@
       mkHomeConfig = system:
         home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.${system};
-          modules = [ ./nix/home.nix ];
+          modules = [ ./home.nix ];
         };
     in
     flake-utils.lib.eachDefaultSystem (system:
