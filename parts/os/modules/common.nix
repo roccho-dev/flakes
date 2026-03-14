@@ -26,11 +26,8 @@
     git
     gh
     htop
-    tmux
-    helix
     lazygit
     yazi
-    nushell
     bash-language-server
     fzf
     jq
