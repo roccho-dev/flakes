@@ -1,8 +1,9 @@
 { config, lib, pkgs, ... }:
 
 {
-  wsl.enable = true;
-  wsl.defaultUser = "nixos";
+  imports = [ ../../modules/base/wsl.nix ];
+
+  networking.hostName = "rent";
 
   system.stateVersion = "25.05"; # Did you read the comment?
 }
