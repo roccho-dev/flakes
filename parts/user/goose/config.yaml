@@ -1,0 +1,19 @@
+extensions:
+  # fetch:
+  #   name: GitHub
+  #   cmd: npx
+  #   args: [-y @modelcontextprotocol/server-github]
+  #   enabled: true
+  #   envs: { "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>" }
+  #   type: stdio
+  #   timeout: 300
+
+  # "brave-search": {
+  #   "command": "wsl",
+  #   "args": [
+  #     "bash",
+  #     "-c",
+  #     "BRAVE_API_KEY=BSAcvwSt2uAfq9eG9zm4ElbgwPrLlO- pnpx @modelcontextprotocol/server-brave-search"
+  #   ]
+  # }
+  
