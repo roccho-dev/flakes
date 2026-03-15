@@ -53,7 +53,7 @@
           esac
         done
 
-        tmp="\${"TMPDIR:-/tmp"}/lazygit-$$"
+        tmp="''${TMPDIR:-/tmp}/lazygit-$$"
         mkdir -p "$tmp"
 
         cfg="$tmp/config.yml"
