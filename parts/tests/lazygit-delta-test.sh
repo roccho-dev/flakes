@@ -10,6 +10,7 @@ set -euo pipefail
 
 repo_root="$1"
 
+export TMPDIR="${TMPDIR:-/tmp}"
 export HOME="$TMPDIR/home"
 export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_CACHE_HOME="$HOME/.cache"
