@@ -1,5 +1,8 @@
 auth.json
 *.log
 result
+result-*
 .direnv/
 .envrc
+.worktree/
+.worktrees/
