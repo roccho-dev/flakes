@@ -1,0 +1,380 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOOL_HOME="$(cd "$SELF_DIR/.." && pwd)"
+DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/opencode"
+CONFIG_FILE="${OCDB_CONFIG:-$TOOL_HOME/sync/config.env}"
+LOCAL_DB_PATH="${OCDB_LOCAL_DB_PATH:-$DATA_HOME/opencode.db}"
+TMP_ROOT="$TOOL_HOME/sync/tmp"
+
+if [ -f "$CONFIG_FILE" ]; then
+  . "$CONFIG_FILE"
+fi
+
+PEER_SSH="${PEER_SSH:-${OCDB_PEER_SSH:-}}"
+PEER_DB_PATH="${PEER_DB_PATH:-${OCDB_PEER_DB_PATH:-/home/nixos/.local/share/opencode/opencode.db}}"
+KEEP_BACKUP="${OCDB_KEEP_BACKUP:-0}"
+
+SSH_OPTS=(
+  -o BatchMode=yes
+  -o ConnectTimeout=10
+  -o StrictHostKeyChecking=accept-new
+)
+
+TMP_DIR=""
+REMOTE_STAGE_DB=""
+REMOTE_SOURCE_DB=""
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ocdb-sync status local
+  ocdb-sync status peer
+  ocdb-sync pull
+  ocdb-sync push
+
+Commands:
+  status local  Print local oc.db verification summary.
+  status peer   Print peer oc.db verification summary over SSH.
+  pull          Snapshot peer oc.db, copy it here, install it, and verify.
+  push          Snapshot local oc.db, copy it to peer, install it there, and verify.
+
+Configuration:
+  Default config path: ~/repos/flakes/.../opencode/sync/config.env
+  Required for peer actions: PEER_SSH
+  Optional: PEER_DB_PATH, OCDB_LOCAL_DB_PATH, OCDB_KEEP_BACKUP=1
+EOF
+}
+
+die() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+need_peer() {
+  [ -n "$PEER_SSH" ] || die "PEER_SSH is not set in $CONFIG_FILE"
+}
+
+need_db() {
+  local path="$1"
+  [ -f "$path" ] || die "database not found: $path"
+}
+
+run_sqlite() {
+  if command -v sqlite3 >/dev/null 2>&1; then
+    sqlite3 "$@"
+  else
+    nix shell --quiet nixpkgs#sqlite -c sqlite3 "$@"
+  fi
+}
+
+make_tmp_dir() {
+  mkdir -p "$TMP_ROOT"
+  TMP_DIR="$(mktemp -d "$TMP_ROOT/run.XXXXXX")"
+}
+
+cleanup() {
+  if [ -n "$REMOTE_SOURCE_DB" ]; then
+    ssh "${SSH_OPTS[@]}" "$PEER_SSH" rm -f "$REMOTE_SOURCE_DB" >/dev/null 2>&1 || true
+  fi
+  if [ -n "$REMOTE_STAGE_DB" ]; then
+    ssh "${SSH_OPTS[@]}" "$PEER_SSH" rm -f "$REMOTE_STAGE_DB" >/dev/null 2>&1 || true
+  fi
+  if [ -n "$TMP_DIR" ] && [ -d "$TMP_DIR" ]; then
+    rm -rf "$TMP_DIR"
+  fi
+}
+
+trap cleanup EXIT
+
+collect_stats_local() {
+  local db="$1"
+  local quick_check session_count message_count part_count latest_session_updated size_bytes sha256
+
+  need_db "$db"
+  quick_check="$(run_sqlite "$db" 'PRAGMA quick_check;' | tr -d '\r')"
+  session_count="$(run_sqlite -noheader "$db" 'SELECT count(*) FROM session;' | tr -d '\r')"
+  message_count="$(run_sqlite -noheader "$db" 'SELECT count(*) FROM message;' | tr -d '\r')"
+  part_count="$(run_sqlite -noheader "$db" 'SELECT count(*) FROM part;' | tr -d '\r')"
+  latest_session_updated="$(run_sqlite -noheader "$db" 'SELECT COALESCE(max(time_updated), 0) FROM session;' | tr -d '\r')"
+  size_bytes="$(stat -c '%s' "$db")"
+  sha256="$(sha256sum "$db" | awk '{print $1}')"
+
+  printf 'db_path\t%s\n' "$db"
+  printf 'size_bytes\t%s\n' "$size_bytes"
+  printf 'sha256\t%s\n' "$sha256"
+  printf 'quick_check\t%s\n' "$quick_check"
+  printf 'session_count\t%s\n' "$session_count"
+  printf 'message_count\t%s\n' "$message_count"
+  printf 'part_count\t%s\n' "$part_count"
+  printf 'latest_session_updated\t%s\n' "$latest_session_updated"
+}
+
+collect_stats_peer() {
+  local db="$1"
+  ssh "${SSH_OPTS[@]}" "$PEER_SSH" bash -s -- "$db" <<'EOF'
+set -euo pipefail
+db="$1"
+run_sqlite() {
+  if command -v sqlite3 >/dev/null 2>&1; then
+    sqlite3 "$@"
+  else
+    nix shell --quiet nixpkgs#sqlite -c sqlite3 "$@"
+  fi
+}
+[ -f "$db" ] || { printf 'error: database not found: %s\n' "$db" >&2; exit 1; }
+quick_check="$(run_sqlite "$db" 'PRAGMA quick_check;' | tr -d '\r')"
+session_count="$(run_sqlite -noheader "$db" 'SELECT count(*) FROM session;' | tr -d '\r')"
+message_count="$(run_sqlite -noheader "$db" 'SELECT count(*) FROM message;' | tr -d '\r')"
+part_count="$(run_sqlite -noheader "$db" 'SELECT count(*) FROM part;' | tr -d '\r')"
+latest_session_updated="$(run_sqlite -noheader "$db" 'SELECT COALESCE(max(time_updated), 0) FROM session;' | tr -d '\r')"
+size_bytes="$(stat -c '%s' "$db")"
+sha256="$(sha256sum "$db" | awk '{print $1}')"
+printf 'db_path\t%s\n' "$db"
+printf 'size_bytes\t%s\n' "$size_bytes"
+printf 'sha256\t%s\n' "$sha256"
+printf 'quick_check\t%s\n' "$quick_check"
+printf 'session_count\t%s\n' "$session_count"
+printf 'message_count\t%s\n' "$message_count"
+printf 'part_count\t%s\n' "$part_count"
+printf 'latest_session_updated\t%s\n' "$latest_session_updated"
+EOF
+}
+
+stat_value() {
+  local file="$1"
+  local key="$2"
+  awk -F '\t' -v key="$key" '$1 == key { print $2 }' "$file"
+}
+
+compare_stats() {
+  local left="$1"
+  local right="$2"
+  local mismatch=0
+  local key left_value right_value
+
+  for key in size_bytes sha256 quick_check session_count message_count part_count latest_session_updated; do
+    left_value="$(stat_value "$left" "$key")"
+    right_value="$(stat_value "$right" "$key")"
+    if [ "$left_value" != "$right_value" ]; then
+      printf 'mismatch\t%s\t%s\t%s\n' "$key" "$left_value" "$right_value" >&2
+      mismatch=1
+    fi
+  done
+
+  [ "$mismatch" -eq 0 ]
+}
+
+print_stats() {
+  local file="$1"
+  printf 'db_path\t%s\n' "$(stat_value "$file" db_path)"
+  printf 'size_bytes\t%s\n' "$(stat_value "$file" size_bytes)"
+  printf 'sha256\t%s\n' "$(stat_value "$file" sha256)"
+  printf 'quick_check\t%s\n' "$(stat_value "$file" quick_check)"
+  printf 'session_count\t%s\n' "$(stat_value "$file" session_count)"
+  printf 'message_count\t%s\n' "$(stat_value "$file" message_count)"
+  printf 'part_count\t%s\n' "$(stat_value "$file" part_count)"
+  printf 'latest_session_updated\t%s\n' "$(stat_value "$file" latest_session_updated)"
+}
+
+snapshot_local_db() {
+  local src="$1"
+  local out="$2"
+  need_db "$src"
+  run_sqlite "$src" ".backup '$out'"
+}
+
+snapshot_peer_db() {
+  local src="$1"
+  local out="$2"
+  ssh "${SSH_OPTS[@]}" "$PEER_SSH" bash -s -- "$src" "$out" <<'EOF'
+set -euo pipefail
+src="$1"
+out="$2"
+run_sqlite() {
+  if command -v sqlite3 >/dev/null 2>&1; then
+    sqlite3 "$@"
+  else
+    nix shell --quiet nixpkgs#sqlite -c sqlite3 "$@"
+  fi
+}
+[ -f "$src" ] || { printf 'error: database not found: %s\n' "$src" >&2; exit 1; }
+run_sqlite "$src" ".backup '$out'"
+EOF
+}
+
+install_local_db() {
+  local stage="$1"
+  local live="$2"
+  local backup="$3"
+
+  if [ -f "$live" ]; then
+    mv "$live" "$backup"
+  fi
+  mv "$stage" "$live"
+}
+
+restore_local_db() {
+  local live="$1"
+  local backup="$2"
+
+  rm -f "$live"
+  if [ -f "$backup" ]; then
+    mv "$backup" "$live"
+  fi
+}
+
+install_peer_db() {
+  local stage="$1"
+  local live="$2"
+  local backup="$3"
+
+  ssh "${SSH_OPTS[@]}" "$PEER_SSH" bash -s -- "$stage" "$live" "$backup" <<'EOF'
+set -euo pipefail
+stage="$1"
+live="$2"
+backup="$3"
+if [ -f "$live" ]; then
+  mv "$live" "$backup"
+fi
+mv "$stage" "$live"
+EOF
+}
+
+restore_peer_db() {
+  local live="$1"
+  local backup="$2"
+
+  ssh "${SSH_OPTS[@]}" "$PEER_SSH" bash -s -- "$live" "$backup" <<'EOF'
+set -euo pipefail
+live="$1"
+backup="$2"
+rm -f "$live"
+if [ -f "$backup" ]; then
+  mv "$backup" "$live"
+fi
+EOF
+}
+
+status_local() {
+  local out="$TMP_DIR/local.tsv"
+  collect_stats_local "$LOCAL_DB_PATH" > "$out"
+  print_stats "$out"
+}
+
+status_peer() {
+  need_peer
+  local out="$TMP_DIR/peer.tsv"
+  collect_stats_peer "$PEER_DB_PATH" > "$out"
+  print_stats "$out"
+}
+
+pull_db() {
+  need_peer
+
+  local source_stats="$TMP_DIR/source.tsv"
+  local stage_stats="$TMP_DIR/stage.tsv"
+  local live_stats="$TMP_DIR/live.tsv"
+  local local_stage_db="$TMP_DIR/opencode.db"
+  local local_backup_db="$TMP_DIR/local.rollback.db"
+
+  REMOTE_SOURCE_DB="$(ssh "${SSH_OPTS[@]}" "$PEER_SSH" mktemp /tmp/ocdb-sync-source.XXXXXX.db)"
+  snapshot_peer_db "$PEER_DB_PATH" "$REMOTE_SOURCE_DB"
+  collect_stats_peer "$REMOTE_SOURCE_DB" > "$source_stats"
+
+  rsync -az --info=stats2 "$PEER_SSH:$REMOTE_SOURCE_DB" "$local_stage_db"
+  collect_stats_local "$local_stage_db" > "$stage_stats"
+  compare_stats "$source_stats" "$stage_stats" || die "copied database does not match peer snapshot"
+
+  install_local_db "$local_stage_db" "$LOCAL_DB_PATH" "$local_backup_db"
+  if ! collect_stats_local "$LOCAL_DB_PATH" > "$live_stats"; then
+    restore_local_db "$LOCAL_DB_PATH" "$local_backup_db"
+    die "installed local database failed verification"
+  fi
+  if ! compare_stats "$source_stats" "$live_stats"; then
+    restore_local_db "$LOCAL_DB_PATH" "$local_backup_db"
+    die "installed local database does not match peer snapshot"
+  fi
+
+  if [ "$KEEP_BACKUP" != "1" ]; then
+    rm -f "$local_backup_db"
+  fi
+
+  printf 'direction\tpull\n'
+  printf 'peer\t%s\n' "$PEER_SSH"
+  print_stats "$live_stats"
+}
+
+push_db() {
+  need_peer
+
+  local source_stats="$TMP_DIR/source.tsv"
+  local stage_stats="$TMP_DIR/stage.tsv"
+  local live_stats="$TMP_DIR/live.tsv"
+  local local_snapshot_db="$TMP_DIR/opencode.db"
+  local remote_backup_db
+
+  need_db "$LOCAL_DB_PATH"
+  snapshot_local_db "$LOCAL_DB_PATH" "$local_snapshot_db"
+  collect_stats_local "$local_snapshot_db" > "$source_stats"
+
+  REMOTE_STAGE_DB="$(ssh "${SSH_OPTS[@]}" "$PEER_SSH" mktemp /tmp/ocdb-sync-stage.XXXXXX.db)"
+  rsync -az --info=stats2 "$local_snapshot_db" "$PEER_SSH:$REMOTE_STAGE_DB"
+  collect_stats_peer "$REMOTE_STAGE_DB" > "$stage_stats"
+  compare_stats "$source_stats" "$stage_stats" || die "copied database does not match local snapshot"
+
+  remote_backup_db="${REMOTE_STAGE_DB}.rollback"
+  install_peer_db "$REMOTE_STAGE_DB" "$PEER_DB_PATH" "$remote_backup_db"
+  REMOTE_STAGE_DB=""
+
+  if ! collect_stats_peer "$PEER_DB_PATH" > "$live_stats"; then
+    restore_peer_db "$PEER_DB_PATH" "$remote_backup_db"
+    die "installed peer database failed verification"
+  fi
+  if ! compare_stats "$source_stats" "$live_stats"; then
+    restore_peer_db "$PEER_DB_PATH" "$remote_backup_db"
+    die "installed peer database does not match local snapshot"
+  fi
+
+  if [ "$KEEP_BACKUP" != "1" ]; then
+    ssh "${SSH_OPTS[@]}" "$PEER_SSH" rm -f "$remote_backup_db"
+  fi
+
+  printf 'direction\tpush\n'
+  printf 'peer\t%s\n' "$PEER_SSH"
+  print_stats "$live_stats"
+}
+
+main() {
+  local cmd="${1:-}"
+  local subcmd="${2:-}"
+
+  case "$cmd" in
+    status)
+      make_tmp_dir
+      case "$subcmd" in
+        local) status_local ;;
+        peer) status_peer ;;
+        *) usage; exit 1 ;;
+      esac
+      ;;
+    pull)
+      make_tmp_dir
+      pull_db
+      ;;
+    push)
+      make_tmp_dir
+      push_db
+      ;;
+    -h|--help|help|'')
+      usage
+      ;;
+    *)
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
