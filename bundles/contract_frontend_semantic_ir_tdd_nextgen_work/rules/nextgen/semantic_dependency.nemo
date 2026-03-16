@@ -1,0 +1,15 @@
+@import Target :- tsv { resource = "Target.tsv" } .
+@import DependsOn :- tsv { resource = "DependsOn.tsv" } .
+@import DependencyMode :- tsv { resource = "DependencyMode.tsv" } .
+
+Violation(semantic_dependency_missing_subject_target, ?t, ?d) :- DependsOn(?t, ?d), ~Target(?t).
+Violation(semantic_dependency_missing_dependency_target, ?t, ?d) :- DependsOn(?t, ?d), ~Target(?d).
+Violation(semantic_dependency_missing_mode, ?t, ?d) :- DependsOn(?t, ?d), ~DependencyMode(?t, ?d, _).
+Violation(semantic_dependency_mode_without_edge, ?t, ?d) :- DependencyMode(?t, ?d, _), ~DependsOn(?t, ?d).
+Violation(semantic_dependency_invalid_mode, ?t, ?d) :- DependencyMode(?t, ?d, ?m), ?m != necessary, ?m != sufficient.
+
+HasViolation(?t) :- Violation(_, ?t, _).
+Achieved(?t) :- Target(?t), ~HasViolation(?t).
+
+@export Violation :- csv { resource = "Violation.csv" } .
+@export Achieved :- csv { resource = "Achieved.csv" } .

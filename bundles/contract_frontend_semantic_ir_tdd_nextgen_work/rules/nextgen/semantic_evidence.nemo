@@ -1,0 +1,16 @@
+@import Target :- tsv { resource = "Target.tsv" } .
+@import ArtifactIdentity :- tsv { resource = "ArtifactIdentity.tsv" } .
+@import EvidenceObligation :- tsv { resource = "EvidenceObligation.tsv" } .
+@import Fixture :- tsv { resource = "Fixture.tsv" } .
+
+Violation(semantic_artifact_missing_target, ?t, ?a) :- ArtifactIdentity(?t, ?a), ~Target(?t).
+Violation(semantic_artifact_missing_evidence_obligation, ?t, ?a) :- ArtifactIdentity(?t, ?a), Target(?t), ~EvidenceObligation(?t, _).
+Violation(semantic_evidence_without_target, ?t, ?m) :- EvidenceObligation(?t, ?m), ~Target(?t).
+Violation(semantic_evidence_invalid_mode, ?t, ?m) :- EvidenceObligation(?t, ?m), ?m != emit, ?m != consume.
+Violation(semantic_fixture_mistaken_as_evidence, ?t, ?a) :- ArtifactIdentity(?t, ?a), EvidenceObligation(?t, _), Fixture(_, ?a).
+
+HasViolation(?t) :- Violation(_, ?t, _).
+Achieved(?t) :- Target(?t), ~HasViolation(?t).
+
+@export Violation :- csv { resource = "Violation.csv" } .
+@export Achieved :- csv { resource = "Achieved.csv" } .

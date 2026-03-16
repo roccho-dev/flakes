@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contract Frontend / Set IR / TDD Red Proposal</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #121933;
+    --panel2: #182142;
+    --text: #e8eefc;
+    --muted: #b7c3e5;
+    --line: #7ea0ff;
+    --accent: #8dd0ff;
+    --good: #5ad08a;
+    --warn: #ffd166;
+    --bad: #ff7a7a;
+    --node: #1d2952;
+    --nodeActive: #2d3f7b;
+    --shadow: rgba(0,0,0,.25);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: linear-gradient(180deg, #0b1020 0%, #0f1730 100%);
+    color: var(--text);
+  }
+  .wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+    min-height: 100vh;
+    gap: 14px;
+    padding: 14px;
+  }
+  .card {
+    background: rgba(18,25,51,.94);
+    border: 1px solid rgba(126,160,255,.18);
+    border-radius: 18px;
+    box-shadow: 0 12px 28px var(--shadow);
+    overflow: hidden;
+  }
+  .leftHead {
+    padding: 12px 14px 4px 14px;
+    border-bottom: 1px solid rgba(126,160,255,.14);
+  }
+  .leftHead h1 {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+  }
+  .leftHead p {
+    margin: 0 0 8px 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  svg { width: 100%; height: calc(100vh - 92px); display: block; background: radial-gradient(circle at top left, rgba(141,208,255,.07), transparent 30%); }
+  .node rect, .node circle, .node path.box {
+    fill: var(--node);
+    stroke: rgba(141,208,255,.38);
+    stroke-width: 1.5;
+    transition: .2s ease;
+    cursor: pointer;
+  }
+  .node text {
+    fill: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    pointer-events: none;
+  }
+  .node .sub {
+    fill: var(--muted);
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .node.active rect, .node.active circle, .node.active path.box {
+    fill: var(--nodeActive);
+    stroke: var(--accent);
+    stroke-width: 2.6;
+    filter: drop-shadow(0 0 12px rgba(141,208,255,.25));
+  }
+  .edge {
+    stroke: rgba(126,160,255,.55);
+    stroke-width: 2.2;
+    fill: none;
+    marker-end: url(#arrow);
+    transition: .2s ease;
+  }
+  .edge.active {
+    stroke: var(--accent);
+    stroke-width: 3.4;
+    filter: drop-shadow(0 0 9px rgba(141,208,255,.3));
+  }
+  .laneLabel {
+    fill: #c8d4fb;
+    font-size: 12px;
+    font-weight: 700;
+    opacity: .9;
+  }
+  .note {
+    fill: rgba(255,255,255,.04);
+    stroke: rgba(255,255,255,.08);
+    stroke-dasharray: 5 5;
+  }
+  .side {
+    display: flex;
+    flex-direction: column;
+  }
+  .side .box {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(126,160,255,.14);
+  }
+  .side h2 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+  }
+  .kicker {
+    display: inline-block;
+    margin-bottom: 8px;
+    font-size: 11px;
+    color: #c8d4fb;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(126,160,255,.14);
+  }
+  .side p, .side li { color: var(--muted); line-height: 1.55; font-size: 13px; }
+  .side ul { margin: 8px 0 0 18px; padding: 0; }
+  .legend { display: grid; gap: 8px; }
+  .legend div { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+  .sw { width: 12px; height: 12px; border-radius: 3px; }
+  .sw.blue { background: #7ea0ff; }
+  .sw.green { background: #5ad08a; }
+  .sw.yellow { background: #ffd166; }
+  .sw.red { background: #ff7a7a; }
+  .cta { color: #d9e8ff; }
+  @media (max-width: 960px) {
+    .wrap { grid-template-columns: 1fr; }
+    svg { height: 68vh; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="leftHead">
+      <h1>契約フロントエンドから lowerable set IR までの最小構成</h1>
+      <p>ノードを押すと、右側の注釈が切り替わります。狙いは <b>backend を増やす</b> ことではなく、<b>目的・事象 → 集合意味 → lowering 義務</b> を backend 非依存で固定することです。</p>
+    </div>
+    <svg viewBox="0 0 1100 760" role="img" aria-label="Contract frontend architecture diagram">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#8dd0ff"></path>
+        </marker>
+      </defs>
+
+      <rect x="20" y="28" width="1060" height="210" rx="18" class="note"></rect>
+      <rect x="20" y="258" width="1060" height="236" rx="18" class="note"></rect>
+      <rect x="20" y="514" width="1060" height="216" rx="18" class="note"></rect>
+      <text x="38" y="55" class="laneLabel">Phase A — Frontend meaning</text>
+      <text x="38" y="286" class="laneLabel">Phase B — Canonical lowerable core</text>
+      <text x="38" y="542" class="laneLabel">Phase C — Backend / verifier / runtime obligations</text>
+
+      <path id="e1" class="edge" d="M255 130 C315 130, 315 130, 375 130"></path>
+      <path id="e2" class="edge" d="M625 130 C685 130, 685 130, 745 130"></path>
+      <path id="e3" class="edge" d="M235 390 C320 390, 320 390, 405 390"></path>
+      <path id="e4" class="edge" d="M655 390 C735 390, 735 390, 815 390"></path>
+      <path id="e5" class="edge" d="M905 390 C965 390, 965 210, 995 150"></path>
+      <path id="e6" class="edge" d="M905 390 C975 390, 975 390, 1025 390"></path>
+      <path id="e7" class="edge" d="M905 390 C965 390, 965 570, 995 620"></path>
+      <path id="e8" class="edge" d="M185 620 C315 620, 315 620, 445 620"></path>
+      <path id="e9" class="edge" d="M635 620 C725 620, 725 620, 815 620"></path>
+
+      <g class="node" id="goal_event" tabindex="0">
+        <rect x="55" y="82" rx="18" ry="18" width="200" height="96"></rect>
+        <text x="155" y="115" text-anchor="middle">目的・事象 FE</text>
+        <text x="155" y="138" text-anchor="middle" class="sub">purpose / actor / event / window</text>
+        <text x="155" y="158" text-anchor="middle" class="sub">narrative を typed source にする</text>
+      </g>
+
+      <g class="node" id="semantic_ir" tabindex="0">
+        <rect x="375" y="72" rx="18" ry="18" width="250" height="116"></rect>
+        <text x="500" y="110" text-anchor="middle">Semantic Contract IR</text>
+        <text x="500" y="135" text-anchor="middle" class="sub">goal role / population / clock / event algebra</text>
+        <text x="500" y="158" text-anchor="middle" class="sub">曖昧さと前提をここで止める</text>
+      </g>
+
+      <g class="node" id="compile_trace" tabindex="0">
+        <rect x="745" y="82" rx="18" ry="18" width="250" height="96"></rect>
+        <text x="870" y="115" text-anchor="middle">Compile Trace</text>
+        <text x="870" y="138" text-anchor="middle" class="sub">source span / rationale / loss marker</text>
+        <text x="870" y="158" text-anchor="middle" class="sub">silent compile を禁止</text>
+      </g>
+
+      <g class="node" id="set_ir" tabindex="0">
+        <rect x="55" y="330" rx="18" ry="18" width="180" height="120"></rect>
+        <text x="145" y="367" text-anchor="middle">Lowerable Set IR</text>
+        <text x="145" y="392" text-anchor="middle" class="sub">typed clause / edge</text>
+        <text x="145" y="414" text-anchor="middle" class="sub">set / quantifier / aggregation</text>
+      </g>
+
+      <g class="node" id="capability" tabindex="0">
+        <rect x="405" y="330" rx="18" ry="18" width="250" height="120"></rect>
+        <text x="530" y="366" text-anchor="middle">Backend Capability Matrix</text>
+        <text x="530" y="392" text-anchor="middle" class="sub">exact / sound_over / sound_under</text>
+        <text x="530" y="414" text-anchor="middle" class="sub">何を表せるかを先に固定</text>
+      </g>
+
+      <g class="node" id="datalog" tabindex="0">
+        <rect x="815" y="330" rx="18" ry="18" width="180" height="120"></rect>
+        <text x="905" y="367" text-anchor="middle">Datalog Verifier</text>
+        <text x="905" y="392" text-anchor="middle" class="sub">cross-artifact check</text>
+        <text x="905" y="414" text-anchor="middle" class="sub">trace / coverage / parity</text>
+      </g>
+
+      <g class="node" id="jsonschema" tabindex="0">
+        <rect x="930" y="110" rx="16" ry="16" width="130" height="74"></rect>
+        <text x="995" y="140" text-anchor="middle">JSON Schema</text>
+        <text x="995" y="160" text-anchor="middle" class="sub">single-instance</text>
+      </g>
+
+      <g class="node" id="lean4" tabindex="0">
+        <rect x="960" y="355" rx="16" ry="16" width="120" height="74"></rect>
+        <text x="1020" y="385" text-anchor="middle">Lean4</text>
+        <text x="1020" y="405" text-anchor="middle" class="sub">proof / theorem</text>
+      </g>
+
+      <g class="node" id="sql_like" tabindex="0">
+        <rect x="930" y="585" rx="16" ry="16" width="130" height="74"></rect>
+        <text x="995" y="615" text-anchor="middle">SQL / set check</text>
+        <text x="995" y="635" text-anchor="middle" class="sub">dataset / aggregation</text>
+      </g>
+
+      <g class="node" id="frontend_red" tabindex="0">
+        <rect x="55" y="575" rx="18" ry="18" width="130" height="96"></rect>
+        <text x="120" y="606" text-anchor="middle">FE red</text>
+        <text x="120" y="628" text-anchor="middle" class="sub">role / scope / time</text>
+        <text x="120" y="648" text-anchor="middle" class="sub">compile loss</text>
+      </g>
+
+      <g class="node" id="lowering_red" tabindex="0">
+        <rect x="445" y="565" rx="18" ry="18" width="190" height="116"></rect>
+        <text x="540" y="599" text-anchor="middle">Lowering red</text>
+        <text x="540" y="624" text-anchor="middle" class="sub">capability mismatch</text>
+        <text x="540" y="646" text-anchor="middle" class="sub">exactness drift / backend leak</text>
+      </g>
+
+      <g class="node" id="runtime_red" tabindex="0">
+        <rect x="815" y="575" rx="18" ry="18" width="210" height="116"></rect>
+        <text x="920" y="609" text-anchor="middle">Runtime / adequacy red</text>
+        <text x="920" y="634" text-anchor="middle" class="sub">counterexample / replay / budget</text>
+        <text x="920" y="656" text-anchor="middle" class="sub">Datalog の外を閉じる</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="card side">
+    <div class="box">
+      <span class="kicker" id="kicker">Recommendation</span>
+      <h2 id="title">まずは frontend compile の意味保存を固定する</h2>
+      <p id="summary">提案の芯は、現在の canonical strict core の手前に <b>Semantic Contract IR</b> を置くことです。契約フロントエンドは、目的・事象をいきなり backend へ寄せず、まず <b>集合意味</b> と <b>観測意味</b> に正規化します。</p>
+      <ul id="points">
+        <li>CUE は emitter の一例でしかない。</li>
+        <li>JSON Schema / CUE / SQL / Lean4 で共有したいのは、構文ではなく意味。</li>
+        <li>Datalog は grammar police ではなく、trace と obligation の番人に置く。</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h2>読み方</h2>
+      <div class="legend">
+        <div><span class="sw blue"></span>青い箱: 固定したい IR / verifier の責務</div>
+        <div><span class="sw yellow"></span>黄色系注釈: 最初に red 化する obligation</div>
+        <div><span class="sw green"></span>緑系注釈: backend が得意な領域</div>
+        <div><span class="sw red"></span>赤系注釈: silent loss / unsupported exactness</div>
+      </div>
+    </div>
+    <div class="box">
+      <h2>最小メッセージ</h2>
+      <p class="cta">backend を増やす前に、<b>目的・事象 → Semantic Contract IR → Lowerable Set IR</b> の 2 段 compile を赤で固定する。ここが固まると、CUE を 1 例のままにしても、JSON Schema / Lean4 へ自然に広がります。</p>
+    </div>
+  </div>
+</div>
+<script>
+const data = {
+  goal_event: {
+    kicker: 'Frontend scope',
+    title: '契約フロントエンドの責務は「目的・事象を typed semantics にする」こと',
+    summary: 'ここでやるべきは backend を意識した文法選びではなく、目的、対象母集団、観測イベント、時計、窓、前提、守るべき制約を explicit にすることです。',
+    points: [
+      '目的を objective / guardrail / assumption / window に分ける。',
+      '事象を event kind・entity key・time source 付きで固定する。',
+      '曖昧な自然文は compile 成功ではなく red か gap に落とす。'
+    ],
+    nodes: ['goal_event'], edges: ['e1']
+  },
+  semantic_ir: {
+    kicker: 'New proposed layer',
+    title: 'Semantic Contract IR を current canonical core の前に置く',
+    summary: 'この IR は backend 非依存です。何を数え、何に対して判定し、どの窓で観測し、どの例外や未知値をどう扱うかを持ちます。',
+    points: [
+      'population / domain / event algebra / clock をここで固定する。',
+      '必要十分の分解理由を clause へ落とせる形にする。',
+      'exact か approximation かの宣言を lowering 前から持つ。'
+    ],
+    nodes: ['semantic_ir'], edges: ['e1','e2']
+  },
+  compile_trace: {
+    kicker: 'No silent compile',
+    title: 'Compile Trace を first-class にする',
+    summary: 'frontend から lowerable core へ落とす時に、何を保存し、何を近似し、何を捨てたかを trace として残します。',
+    points: [
+      'source span と rationale を clause / edge ごとに持つ。',
+      'loss marker が無い silent narrowing / widening を禁止する。',
+      '人がレビューしなくても diff と blame が見える。'
+    ],
+    nodes: ['compile_trace'], edges: ['e2']
+  },
+  set_ir: {
+    kicker: 'Canonical lowerable core',
+    title: 'Lowerable Set IR は「構文」ではなく「集合意味」の core',
+    summary: '今の canonical source IR は良い土台ですが、集合定義 backend を増やすなら clause を instance shape ではなく set predicate として捉える方が強いです。',
+    points: [
+      'subject / property / operator / bound に加え、quantifier と domain を明示する。',
+      'window と aggregation は event set 上の意味として固定する。',
+      'backend 固有の op 名はここへ漏らさない。'
+    ],
+    nodes: ['set_ir'], edges: ['e3']
+  },
+  capability: {
+    kicker: 'Emitter guard',
+    title: 'Backend Capability Matrix を canonical facts にする',
+    summary: 'backend を増やす時の事故は、何が exact に表せて何が表せないかが曖昧なことから起きます。だから capability を IR から参照可能にします。',
+    points: [
+      'JSON Schema は single-instance 寄り。',
+      'SQL 系は dataset / aggregation 寄り。',
+      'Lean4 は証明と exactness の anchor。'
+    ],
+    nodes: ['capability'], edges: ['e3','e4']
+  },
+  datalog: {
+    kicker: 'Verifier scope',
+    title: 'Datalog の仕事は cross-artifact の join であって runtime 代替ではない',
+    summary: 'Datalog は grammar 全部を持つより、trace completeness、capability mismatch、projection parity、witness obligation の未接続を赤にする方が費用対効果が高いです。',
+    points: [
+      '目的→IR→artifact→witness の trace を切らさない。',
+      'unsupported exact lowering を violation にする。',
+      'runtime replay や性能実測までは持たせない。'
+    ],
+    nodes: ['datalog'], edges: ['e4','e5','e6','e7']
+  },
+  jsonschema: {
+    kicker: 'Backend family',
+    title: 'JSON Schema は instance-level の exactness に強い',
+    summary: '単一 JSON インスタンスの shape、必須項目、列挙、数値境界、局所的な構造制約には向きます。一方、時間順序や複数レコード集計は別 backend 義務に寄せるべきです。',
+    points: [
+      'single-instance leaf の emitter 候補。',
+      'frontend はこれに合わせて意味を狭めない。',
+      '表せないものは capability mismatch で赤にする。'
+    ],
+    nodes: ['jsonschema'], edges: ['e5']
+  },
+  lean4: {
+    kicker: 'Proof backend',
+    title: 'Lean4 は exactness と compile correctness の anchor に向く',
+    summary: 'すべてを Lean4 へ落とす必要はありません。難しい clause だけ exact semantics と equivalence proof の避難先にする使い方が費用対効果に合います。',
+    points: [
+      '難しい quantifier / temporal semantics の根拠置き場になる。',
+      '他 backend の soundness claim を支える。',
+      '実運用の主 backend ではなく、信頼の anchor として使う。'
+    ],
+    nodes: ['lean4'], edges: ['e6']
+  },
+  sql_like: {
+    kicker: 'Set backend',
+    title: 'SQL / set check 系は aggregation と dataset 条件に向く',
+    summary: 'イベント集合に対する count, ratio, grouped condition, join を扱う clause は、instance schema ではなく set backend に寄せた方が自然です。',
+    points: [
+      'window 集計や join が必要な leaf の着地点。',
+      'frontend で event algebra を明示すると lowering しやすい。',
+      'exact / approximation の宣言を matrix と対にする。'
+    ],
+    nodes: ['sql_like'], edges: ['e7']
+  },
+  frontend_red: {
+    kicker: 'Wave 1 red',
+    title: '最初に増やすべき red は frontend compile 義務',
+    summary: '効果が高いのは、目的・事象の compile 時に意味を落としていないかを赤にすることです。',
+    points: [
+      'role collision / missing population / missing event clock / missing quantifier domain。',
+      'objective と guardrail の混同。',
+      'compile で前提が事実へすり替わる drift。'
+    ],
+    nodes: ['frontend_red'], edges: ['e8']
+  },
+  lowering_red: {
+    kicker: 'Wave 2 red',
+    title: '次に lowerability / exactness drift を赤にする',
+    summary: 'backend 固有 syntax leak や unsupported exact claim は、IR が増えるほど重大になります。',
+    points: [
+      'backend_capability_mismatch。',
+      'exact_claim_without_equivalence_basis。',
+      'backend_specific_grammar_leaked_to_canonical_ir。'
+    ],
+    nodes: ['lowering_red'], edges: ['e8','e9']
+  },
+  runtime_red: {
+    kicker: 'Wave 3 red',
+    title: '最後に adequacy / runtime / budget を別 suite で閉じる',
+    summary: 'Datalog を増やしても現実の時間・外部障害・性能は閉じません。だから別 suite だが、必要義務の未接続は Datalog で赤にします。',
+    points: [
+      'counterexample obligation を持たない sufficiency claim を赤にする。',
+      'timeout / retry / replay / cost budget test の欠落を赤にする。',
+      'truth 自体は runtime / proof / experiment で閉じる。'
+    ],
+    nodes: ['runtime_red'], edges: ['e9']
+  }
+};
+function clearActive(){
+  document.querySelectorAll('.node').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.edge').forEach(e=>e.classList.remove('active'));
+}
+function activate(id){
+  const item = data[id];
+  if(!item) return;
+  clearActive();
+  item.nodes.forEach(n=>document.getElementById(n)?.classList.add('active'));
+  item.edges.forEach(e=>document.getElementById(e)?.classList.add('active'));
+  document.getElementById('kicker').textContent = item.kicker;
+  document.getElementById('title').textContent = item.title;
+  document.getElementById('summary').innerHTML = item.summary;
+  document.getElementById('points').innerHTML = item.points.map(p=>`<li>${p}</li>`).join('');
+}
+document.querySelectorAll('.node').forEach(n=>{
+  n.addEventListener('click', ()=>activate(n.id));
+  n.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); activate(n.id); } });
+});
+activate('semantic_ir');
+</script>
+</body>
+</html>

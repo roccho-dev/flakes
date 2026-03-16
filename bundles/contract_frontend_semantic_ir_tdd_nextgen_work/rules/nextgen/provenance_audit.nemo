@@ -1,0 +1,18 @@
+@import DecompositionRun :- tsv { resource = "DecompositionRun.tsv" } .
+@import OriginSourceRef :- tsv { resource = "OriginSourceRef.tsv" } .
+@import OriginTargetRef :- tsv { resource = "OriginTargetRef.tsv" } .
+@import OriginView :- tsv { resource = "OriginView.tsv" } .
+@import RunEmitsTarget :- tsv { resource = "RunEmitsTarget.tsv" } .
+@import RunSupersedes :- tsv { resource = "RunSupersedes.tsv" } .
+
+Violation(provenance_run_missing_origin_member, ?r, ?r) :- DecompositionRun(?r), ~OriginSourceRef(?r, _), ~OriginTargetRef(?r, _).
+Violation(provenance_run_missing_origin_view, ?r, ?r) :- DecompositionRun(?r), ~OriginView(?r, _).
+Violation(provenance_emit_missing_run, ?t, ?t) :- RunEmitsTarget(?r, ?t), ~DecompositionRun(?r).
+Violation(provenance_supersedes_missing_predecessor, ?r, ?p) :- RunSupersedes(?r, ?p), DecompositionRun(?r), ~DecompositionRun(?p).
+Violation(provenance_supersedes_missing_successor, ?r, ?p) :- RunSupersedes(?r, ?p), ~DecompositionRun(?r), DecompositionRun(?p).
+
+HasViolation(?r) :- Violation(_, ?r, _).
+Achieved(?r) :- DecompositionRun(?r), ~HasViolation(?r).
+
+@export Violation :- csv { resource = "Violation.csv" } .
+@export Achieved :- csv { resource = "Achieved.csv" } .

@@ -1,0 +1,6 @@
+suite	<BUNDLE_ROOT>/tests/runtime
+core_rule	<BUNDLE_ROOT>/rules/semantic_core.nemo
+audit_rule	<BUNDLE_ROOT>/rules/provenance_audit.nemo
+total	2
+pass	2
+fail	0

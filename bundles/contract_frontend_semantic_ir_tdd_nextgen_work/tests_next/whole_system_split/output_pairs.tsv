@@ -1,0 +1,5 @@
+label	expected_rel	actual_rel	mode
+semantic_violation	ExpectedSemanticViolation.tsv	SemanticViolation.csv	violation
+semantic_achieved	ExpectedSemanticAchieved.tsv	SemanticAchieved.csv	achieved
+audit_violation	ExpectedAuditViolation.tsv	AuditViolation.csv	violation
+audit_achieved	ExpectedAuditAchieved.tsv	AuditAchieved.csv	achieved

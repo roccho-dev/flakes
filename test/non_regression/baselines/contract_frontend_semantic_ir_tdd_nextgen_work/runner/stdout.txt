@@ -1,0 +1,119 @@
+PASS ns02
+suite	red
+total	1
+pass	1
+fail	0
+PASS ns01
+suite	green
+total	1
+pass	1
+fail	0
+PASS np01
+PASS np03
+PASS np04
+suite	red
+total	3
+pass	3
+fail	0
+PASS np02
+PASS np05
+suite	green
+total	2
+pass	2
+fail	0
+PASS ng01
+PASS ng02
+suite	red
+total	2
+pass	2
+fail	0
+PASS ng03
+suite	green
+total	1
+pass	1
+fail	0
+PASS nd01
+PASS nd02
+PASS nd03
+suite	red
+total	3
+pass	3
+fail	0
+PASS nd04
+PASS nd05
+suite	green
+total	2
+pass	2
+fail	0
+PASS ne01
+PASS ne03
+suite	red
+total	2
+pass	2
+fail	0
+PASS ne02
+PASS ne04
+suite	green
+total	2
+pass	2
+fail	0
+PASS nt01
+PASS nt03
+suite	red
+total	2
+pass	2
+fail	0
+PASS nt02
+suite	green
+total	1
+pass	1
+fail	0
+PASS ni01
+suite	red
+total	1
+pass	1
+fail	0
+PASS ni02
+suite	green
+total	1
+pass	1
+fail	0
+PASS nr01
+PASS nr02
+PASS nr03
+suite	red
+total	3
+pass	3
+fail	0
+PASS ng01
+suite	green
+total	1
+pass	1
+fail	0
+PASS nw01
+PASS nw02
+suite	red
+total	2
+pass	2
+fail	0
+PASS nw03
+suite	green
+total	1
+pass	1
+fail	0
+suite_name	mode	result
+semantic_core	both	PASS
+provenance_audit	both	PASS
+semantic_graph	both	PASS
+semantic_dependency	both	PASS
+semantic_evidence	both	PASS
+test_spec	both	PASS
+implementation_satisfier	both	PASS
+runtime_usecase	both	PASS
+whole_system_split	both	PASS
+gate_id	result	notes
+G01	PASS	all nextgen suites passed red+green
+G02	PASS	dual verdict suite results present
+G03	PASS	final spec present and migration table fully DONE
+G04	PASS	parity matrix present
+G05	PASS	legacy path freeze documented

@@ -1,0 +1,3 @@
+case_id	notes
+nd04	necessary dependency edge with valid mode should pass green
+nd05	sufficient dependency edge with valid mode should pass green

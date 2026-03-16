@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -euo pipefail
+BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+resolve_nmo() {
+  if [[ -n "${NMO:-}" ]]; then
+    if [[ -x "$NMO" ]]; then
+      printf '%s\n' "$NMO"
+      return 0
+    fi
+    echo "NMO is set but not executable: $NMO" >&2
+    return 2
+  fi
+  if [[ -x "$BASE/vendor/nmo" ]]; then
+    printf '%s\n' "$BASE/vendor/nmo"
+    return 0
+  fi
+  if command -v nmo >/dev/null 2>&1; then
+    command -v nmo
+    return 0
+  fi
+  echo "nmo not found: tried NMO env, vendor/nmo, PATH" >&2
+  return 2
+}
+
+mk_import_dir() {
+  local rule="$1" facts_dir="$2" import_dir="$3"
+  local resources
+  mkdir -p "$import_dir"
+  resources="$(sed -n 's/.*resource = "\([^"]*\.tsv\)".*/\1/p' "$rule" | LC_ALL=C sort -u)"
+  if [[ -n "$resources" ]]; then
+    while IFS= read -r resource; do
+      [[ -z "$resource" ]] && continue
+      if [[ -f "$facts_dir/$resource" ]]; then
+        cp "$facts_dir/$resource" "$import_dir/$resource"
+      else
+        : > "$import_dir/$resource"
+      fi
+    done <<< "$resources"
+  fi
+  if [[ -d "$facts_dir" ]]; then
+    while IFS= read -r extra; do
+      rel="${extra#$facts_dir/}"
+      if [[ ! -f "$import_dir/$rel" ]]; then
+        mkdir -p "$(dirname "$import_dir/$rel")"
+        cp "$extra" "$import_dir/$rel"
+      fi
+    done < <(find "$facts_dir" -type f | LC_ALL=C sort)
+  fi
+}
+
+normalize_expected_violation() {
+  local src="$1" dst="$2"
+  if [[ -s "$src" ]]; then
+    sed '/^[[:space:]]*$/d' "$src" | LC_ALL=C sort > "$dst"
+  else
+    : > "$dst"
+  fi
+}
+normalize_actual_violation() {
+  local src="$1" dst="$2"
+  if [[ -s "$src" ]]; then
+    awk -F',' 'NF {print $1 "\t" $2 "\t" $3}' "$src" | LC_ALL=C sort > "$dst"
+  else
+    : > "$dst"
+  fi
+}
+normalize_expected_achieved() {
+  local src="$1" dst="$2"
+  if [[ -s "$src" ]]; then
+    sed '/^[[:space:]]*$/d' "$src" | LC_ALL=C sort > "$dst"
+  else
+    : > "$dst"
+  fi
+}
+normalize_actual_achieved() {
+  local src="$1" dst="$2"
+  if [[ -s "$src" ]]; then
+    awk -F',' 'NF {print $1}' "$src" | LC_ALL=C sort > "$dst"
+  else
+    : > "$dst"
+  fi
+}
