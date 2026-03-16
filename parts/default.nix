@@ -5,5 +5,8 @@
     ./opencode/default.nix
     ./nemo/default.nix
     ./local/default.nix
+    ./os/default.nix
+    ./chromedevtoolprotocol/default.nix
+    ./user/default.nix
   ];
 }
