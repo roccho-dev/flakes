@@ -1,8 +1,10 @@
-auth.json
-*.log
 result
 result-*
-.direnv/
-.envrc
-.worktree/
-.worktrees/
+
+# Zig build outputs
+.zig-cache/
+zig-out/
+
+# Local working artifacts (keep out of git by default)
+thread-artifacts/
+tools/
