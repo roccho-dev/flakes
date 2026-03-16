@@ -1,0 +1,4 @@
+case_id	notes
+nd01	dependency edge without mode should fail red
+nd02	invalid dependency mode should fail red
+nd03	dependency mode without edge should fail red

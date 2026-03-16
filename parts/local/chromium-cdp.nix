@@ -5,21 +5,6 @@
     let
       chromiumPkg = pkgs.chromium;
 
-      cdpBridge = pkgs.stdenv.mkDerivation {
-        pname = "cdp-bridge";
-        version = "0.1.0";
-        src = ./cdp-bridge.zig;
-        dontUnpack = true;
-        nativeBuildInputs = [ pkgs.zig ];
-        buildPhase = ''
-          runHook preBuild
-          mkdir -p "$out/bin"
-          zig build-exe -O ReleaseSafe -fstrip -femit-bin="$out/bin/cdp-bridge" "$src"
-          runHook postBuild
-        '';
-        installPhase = "true";
-      };
-
       chromiumCdp = pkgs.writeShellScriptBin "chromium-cdp" ''
         set -euo pipefail
 
@@ -55,26 +40,13 @@
         port="''${HQ_CHROME_PORT:-9222}"
         addr="''${HQ_CHROME_ADDR:-127.0.0.1}"
 
-        exec ${cdpBridge}/bin/cdp-bridge wsurl --addr "$addr" --port "$port"
+        exec ${pkgs.curl}/bin/curl -sS "http://$addr:$port/json/version" | ${pkgs.jq}/bin/jq -r .webSocketDebuggerUrl
       '';
-
-      chromiumCdpTools = pkgs.symlinkJoin {
-        name = "chromium-cdp-tools";
-        paths = [
-          chromiumPkg
-          chromiumCdp
-          chromiumCdpWsUrl
-          cdpBridge
-          (pkgs.lib.getBin pkgs.quickjs-ng)
-        ];
-      };
     in
     {
       packages.hq-chromium = chromiumPkg;
       packages.chromium-cdp = chromiumCdp;
       packages.chromium-cdp-wsurl = chromiumCdpWsUrl;
-      packages.cdp-bridge = cdpBridge;
-      packages.chromium-cdp-tools = chromiumCdpTools;
 
       apps.chromium-cdp = {
         type = "app";

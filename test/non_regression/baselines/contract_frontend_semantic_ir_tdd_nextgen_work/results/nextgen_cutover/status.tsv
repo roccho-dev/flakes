@@ -1,0 +1,6 @@
+gate_id	result	notes
+G01	PASS	all nextgen suites passed red+green
+G02	PASS	dual verdict suite results present
+G03	PASS	final spec present and migration table fully DONE
+G04	PASS	parity matrix present
+G05	PASS	legacy path freeze documented

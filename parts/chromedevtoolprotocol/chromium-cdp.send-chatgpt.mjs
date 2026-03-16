@@ -18,9 +18,11 @@ import {
   sleepMs,
 } from "./chromium-cdp.lib.mjs";
 
+import { waitForDomModelExpr } from "./hq-dom-model.mjs";
+
 function usage() {
   std.err.puts(
-    "usage: qjs --std -m chromium-cdp.send-chatgpt.mjs --url <thread-url> (--text <s> | --text-file <path>) [--addr 127.0.0.1] [--port 9222] [--wait-ms 0] [--id <targetId>]\n",
+    "usage: qjs --std -m chromium-cdp.send-chatgpt.mjs --url <thread-url> (--text <s> | --text-file <path>) [--prepend <s>] [--append <s>] [--outDir <dir>] [--dryRun] [--requireDomPro] [--domWaitMs 8000] [--addr 127.0.0.1] [--port 9222] [--wait-ms 0] [--id <targetId>]\n",
   );
   std.err.flush();
 }
@@ -34,6 +36,12 @@ function parseArgs(argv) {
     waitMs: 0,
     text: null,
     textFile: null,
+    prepend: "",
+    append: "",
+    outDir: null,
+    dryRun: false,
+    requireDomPro: false,
+    domWaitMs: 8000,
   };
 
   for (let i = 1; i < argv.length; i++) {
@@ -45,6 +53,12 @@ function parseArgs(argv) {
     else if (a === "--wait-ms" && i + 1 < argv.length) out.waitMs = Number(argv[++i]) || out.waitMs;
     else if (a === "--text" && i + 1 < argv.length) out.text = argv[++i];
     else if (a === "--text-file" && i + 1 < argv.length) out.textFile = argv[++i];
+    else if (a === "--prepend" && i + 1 < argv.length) out.prepend = argv[++i];
+    else if (a === "--append" && i + 1 < argv.length) out.append = argv[++i];
+    else if (a === "--outDir" && i + 1 < argv.length) out.outDir = argv[++i];
+    else if (a === "--dryRun") out.dryRun = true;
+    else if (a === "--requireDomPro") out.requireDomPro = true;
+    else if (a === "--domWaitMs" && i + 1 < argv.length) out.domWaitMs = Number(argv[++i]) || out.domWaitMs;
     else if (a === "-h" || a === "--help") return null;
     else {
       std.err.puts(`unknown arg: ${a}\n`);
@@ -56,6 +70,15 @@ function parseArgs(argv) {
   if (!out.text && !out.textFile) return null;
   if (out.text && out.textFile) return null;
   return out;
+}
+
+function ensureDir(path) {
+  if (!path) return;
+  try {
+    os.mkdir(path, 0o755);
+  } catch {
+    // ignore if exists
+  }
 }
 
 function extractConversationId(url) {
@@ -188,10 +211,14 @@ function main(argv) {
     return 2;
   }
 
-  const text = args.textFile ? String(std.loadFile(args.textFile) || "") : String(args.text || "");
+  let text = args.textFile ? String(std.loadFile(args.textFile) || "") : String(args.text || "");
+  if (args.prepend) text = String(args.prepend) + text;
+  if (args.append) text = text + String(args.append);
   if (!text.length) {
     throw new Error("text is empty");
   }
+
+  if (args.outDir) ensureDir(args.outDir);
 
   // Ensure CDP is up.
   cdpVersion(args.addr, args.port);
@@ -211,6 +238,16 @@ function main(argv) {
       id: nextId++,
       returnByValue: true,
       awaitPromise: false,
+      timeoutMs: timeoutMs || 60000,
+    });
+    return resp?.result?.result?.value;
+  };
+
+  const evalPromiseByValue = (expression, timeoutMs) => {
+    const resp = cdpEvaluate(wsUrl, expression, {
+      id: nextId++,
+      returnByValue: true,
+      awaitPromise: true,
       timeoutMs: timeoutMs || 60000,
     });
     return resp?.result?.result?.value;
@@ -253,6 +290,59 @@ function main(argv) {
     throw new Error("page is generating; wait until idle (no stop button) and retry");
   }
 
+  // DOM model preflight (optional gate).
+  let domModelPreflight = null;
+  try {
+    domModelPreflight = evalPromiseByValue(waitForDomModelExpr(args.domWaitMs), 60000);
+  } catch {
+    domModelPreflight = null;
+  }
+
+  const preflightRecord = {
+    ts_utc: new Date().toISOString(),
+    url: String(args.url || ""),
+    target: { id: target.id, url: target.url, title: target.title },
+    dom_model: domModelPreflight,
+    require_dom_pro: !!args.requireDomPro,
+    text_len: text.length,
+  };
+
+  if (args.outDir) {
+    std.writeFile(`${args.outDir}/DOM_MODEL_PRE_SEND.json`, JSON.stringify(preflightRecord, null, 2) + "\n");
+  }
+
+  if (args.requireDomPro) {
+    const ok = !!(domModelPreflight && domModelPreflight.found && domModelPreflight.pro_model === true);
+    if (!ok) {
+      const out = {
+        ok: false,
+        reason: "dom_model_not_pro",
+        target: { id: target.id, url: target.url, title: target.title },
+        before,
+        dom_model_preflight: domModelPreflight,
+      };
+      if (args.outDir) std.writeFile(`${args.outDir}/SEND_META.json`, JSON.stringify(out, null, 2) + "\n");
+      std.out.puts(JSON.stringify(out, null, 2) + "\n");
+      std.out.flush();
+      return 4;
+    }
+  }
+
+  if (args.dryRun) {
+    const out = {
+      ok: true,
+      dry_run: true,
+      target: { id: target.id, url: target.url, title: target.title },
+      before,
+      dom_model_preflight: domModelPreflight,
+      text_len: text.length,
+    };
+    if (args.outDir) std.writeFile(`${args.outDir}/SEND_META.json`, JSON.stringify(out, null, 2) + "\n");
+    std.out.puts(JSON.stringify(out, null, 2) + "\n");
+    std.out.flush();
+    return 0;
+  }
+
   // Focus prompt via a real click.
   mouseClick(before.prompt.center.x, before.prompt.center.y);
   sleepMs(50);
@@ -290,19 +380,17 @@ function main(argv) {
   sleepMs(500);
   const after = evalByValue(promptLenExpr(), 30000);
 
-  std.out.puts(
-    JSON.stringify(
-      {
-        target: { id: target.id, url: target.url, title: target.title },
-        before,
-        afterType,
-        send: { how: sendHow },
-        after,
-      },
-      null,
-      2,
-    ) + "\n",
-  );
+  const out = {
+    ok: true,
+    target: { id: target.id, url: target.url, title: target.title },
+    before,
+    dom_model_preflight: domModelPreflight,
+    afterType,
+    send: { how: sendHow },
+    after,
+  };
+  if (args.outDir) std.writeFile(`${args.outDir}/SEND_META.json`, JSON.stringify(out, null, 2) + "\n");
+  std.out.puts(JSON.stringify(out, null, 2) + "\n");
   std.out.flush();
   return 0;
 }

@@ -1,10 +1,6 @@
 result
 result-*
-
-# Zig build outputs
-.zig-cache/
-zig-out/
-
-# Local working artifacts (keep out of git by default)
+**/.zig-cache/
+**/zig-out/
 thread-artifacts/
 tools/

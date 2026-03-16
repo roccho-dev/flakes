@@ -1,0 +1,6 @@
+@import A :- tsv { resource = "A.tsv" } .
+@import B :- tsv { resource = "B.tsv" } .
+Achieved(?x) :- A(?x), ~B(?x).
+Violation(?kind, ?entity, ?detail) :- A(?x), ?x = "__never__", ?kind = "__never__", ?entity = "__never__", ?detail = "__never__".
+@export Violation :- csv { resource = "Violation.csv" } .
+@export Achieved :- csv { resource = "Achieved.csv" } .

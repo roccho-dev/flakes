@@ -1,0 +1,25 @@
+urn	status	evidence	definition	whyNotRed	blockedBy
+urn:source/record	🟦fixed	🗣️会話 🧠推論	分解起点となり得る raw source を typed record として保持する。	source を残しつつ semantic core に混ぜない。	
+urn:provenance/decomposition/run	🟦fixed	🗣️会話 🧠推論	1回の分解・再解釈・再配置の実行単位を表す。	global root を持たず run-local に起点を持てる。	
+urn:provenance/decomposition/origin-source	🟦fixed	🗣️会話 🧠推論	decomposition run が source record を起点にしたことを表す。	origin を nar 固定 singleton にしない。	
+urn:provenance/decomposition/origin-target	🟦fixed	🗣️会話 🧠推論	decomposition run が既存 target を起点にしたことを表す。	strict から strict への再分解を扱える。	
+urn:provenance/decomposition/origin-view	🟦fixed	🗣️会話 🧠推論	run が origin-set を objective / constraint / hypothesis / request などのどれとして読んだかを保持する。	"どこから" の性質変化を履歴として保持できる。	
+urn:provenance/decomposition/emits	🟦fixed	🗣️会話 🧠推論	run が frontier strict target を生成した対応を表す。	分解開始点と最初の strict frontier を結び付けられる。	
+urn:provenance/decomposition/supersedes	🟦fixed	🗣️会話 🧠推論	新しい decomposition run が古い run の解釈を置換したことを表す。	起点解釈の変更を再帰でなく revision branch として保持できる。	
+urn:semantic/target	🟦fixed	🗣️会話 🧠推論	semantic strict の唯一の契約 node として測定可能 target を表す。	node 種別を増やさず責務を target に固定できる。	
+urn:semantic/target-population	🟦fixed	🗣️会話 📄README.md	各 target が何の集合・母集団を対象にするかを定義する。	semantic 真理条件の最小必須要素。	
+urn:semantic/event-anchor	🟦fixed	🗣️会話 📄README.md	各 target がどの event identity に基づいて測定されるかを定義する。	semantic 真理条件の最小必須要素。	
+urn:semantic/clock-source	🟦fixed	🗣️会話 📄README.md	各 target がどの時計・時刻系に従うかを定義する。	semantic 真理条件の最小必須要素。	
+urn:semantic/observation-window	🟦fixed	🗣️会話 📄README.md	各 target がどの観測窓で評価されるかを定義する。	semantic 真理条件の最小必須要素。	
+urn:semantic/success-metric-identity	🟦fixed	🗣️会話 📄README.md	各 target の成功判定に使う metric identity を定義する。	semantic 真理条件の最小必須要素。	
+urn:semantic/refines	🟦fixed	🗣️会話 🧠推論	より具体な target からより抽象な target への一方向関係を表す。	abstract/concrete を node 型でなく relation で扱える。	
+urn:semantic/dependency	🟦fixed	🗣️会話 🧠推論	target 間の necessary / sufficient 条件関係を表す。	"目的だったものが条件だった" を型変更なしで吸収できる。	
+urn:semantic/evidence-obligation	🟦fixed	🗣️会話 🧠推論	exact な target または clause が観測可能な証拠経路を持つべきことを表す。	witness を fixture と混同せず契約義務として分離できる。	
+urn:runtime/focus	🟦fixed	🗣️会話 🧠推論	今回どの target を評価対象とするかを run-time で指定する。	final goal を永続 fact にしない。	
+urn:runtime/profile-core	🟦fixed	🗣️会話 🧠推論	Achieved / Violation を semantic strict のみで計算する profile。	provenance 欠落で semantic verdict が巻き添えにならない。	
+urn:runtime/profile-audit	🟦fixed	🗣️会話 🧠推論	origin / compile / supersedes など provenance strict を検査する profile。	explainability を残しつつ semantic core を純化できる。	
+urn:translate/diagnostic	🟦fixed	🗣️会話 🧠推論	strict に昇格できない候補の blockedBy と最小DoD を保持する。	未完成物を strict IR に混ぜずに止められる。	
+urn:rule/vocabulary-classification	🟦fixed	🗣️会話 🧠推論	rule に出る語は independent responsibility / slot / tag / helper に分類し independent responsibility だけを public fact とする。	語彙肥大と helper 語の public 化を防げる。	
+urn:runner/nmo-resolution	🟦fixed	🗣️会話 📄要件	NMO 解決順を NMO env → vendor/nmo → PATH とする。	NixOS 差分を吸収しつつ shell-only を維持できる。	
+urn:runner/import-dir	🟦fixed	🗣️会話 📄要件	@import 一覧から import-dir を組み立て facts に無い resource を空TSVで補完して nmo -I に渡す。	不足TSV1つで即死しない。	
+urn:runner/profile-suite	🟨draft	🗣️会話 🧠推論	core/audit profile ごとに suite と期待値を分けて実行する。	semantic と provenance の責務を混ぜずに TDD できる。	

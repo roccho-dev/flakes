@@ -1,0 +1,15 @@
+@import Target :- tsv { resource = "Target.tsv" } .
+@import Refines :- tsv { resource = "Refines.tsv" } .
+
+RefinePath(?c, ?p) :- Refines(?c, ?p).
+RefinePath(?c, ?a) :- Refines(?c, ?p), RefinePath(?p, ?a).
+
+Violation(semantic_refinement_missing_child_target, ?c, ?p) :- Refines(?c, ?p), ~Target(?c).
+Violation(semantic_refinement_missing_parent_target, ?c, ?p) :- Refines(?c, ?p), ~Target(?p).
+Violation(semantic_refinement_cycle, ?t, ?t) :- Target(?t), RefinePath(?t, ?t).
+
+HasViolation(?t) :- Violation(_, ?t, _).
+Achieved(?t) :- Target(?t), ~HasViolation(?t).
+
+@export Violation :- csv { resource = "Violation.csv" } .
+@export Achieved :- csv { resource = "Achieved.csv" } .

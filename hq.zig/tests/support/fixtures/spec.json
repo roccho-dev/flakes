@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "batch_id": "example-001",
+  "teams": [
+    { "team_id": "teamA", "sessions": { "ceo": "https://chatgpt.com/c/example" } }
+  ],
+  "jobs": [
+    {
+      "team_id": "teamA",
+      "job_id": "CEO-ORDERS",
+      "role": "ceo",
+      "deliverable": "teamA_orders.json",
+      "task": "ship the batch"
+    }
+  ]
+}

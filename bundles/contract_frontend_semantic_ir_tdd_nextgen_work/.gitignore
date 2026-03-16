@@ -1,0 +1,4 @@
+/results/
+/vendor/
+.DS_Store
+*.tmp

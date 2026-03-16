@@ -1,0 +1,13 @@
+.{
+    .name = .chromedevtoolprotocol,
+    .version = "0.2.0",
+    .fingerprint = 0xdd75921ca63e1eb1,
+    .minimum_zig_version = "0.16.0-dev.2535+b5bd49460",
+    .paths = .{
+        "src",
+        "tests",
+        "build.zig",
+        "build.zig.zon",
+        "README.md",
+    },
+}

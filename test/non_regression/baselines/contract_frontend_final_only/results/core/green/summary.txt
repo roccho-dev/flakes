@@ -1,0 +1,6 @@
+suite	<BUNDLE_ROOT>/tests/core
+kind	green
+rule	<BUNDLE_ROOT>/rules/semantic_core.nemo
+total	3
+pass	3
+fail	0
