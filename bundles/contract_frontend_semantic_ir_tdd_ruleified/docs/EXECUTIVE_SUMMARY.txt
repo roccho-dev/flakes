@@ -1,0 +1,10 @@
+Executable summary
+- suite shape: contract frontend compile + lowerable set + whole-system trace + adequacy + runtime/quality obligations
+- red cases: 60
+- green cases: 12
+- objection applied: sa08 no longer requires a proof backend target on every exact-only clause
+- objection applied: coarse QualityBudget split into LatencyBudget, CostBudget, AuthzContract, and ProductionTraceBinding
+- objection applied: fg12 whole-system trace now imports GoalEventSource, UseCaseForTarget, and ClauseWitnessObligation through an explicit WholeSystemTarget scope
+- objection applied: shell-only TDD entry restored; bin scripts no longer depend on Python
+- exactness anchor accepted forms: ExactnessAnchor, ProofBackendTarget, or EquivalenceBasis
+- objection applied: lowering presence is now executable for ClauseBackend, ClauseLoweringMode, ClauseFeature, ClauseArtifact, and whole-system artifact trace identity

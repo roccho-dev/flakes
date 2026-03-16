@@ -1,0 +1,3 @@
+case_id	notes
+ng01	self-cycle in refinement graph should fail red
+ng02	refinement edge to missing parent should fail red

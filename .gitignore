@@ -1,8 +1,6 @@
-auth.json
-*.log
 result
 result-*
-.direnv/
-.envrc
-.worktree/
-.worktrees/
+**/.zig-cache/
+**/zig-out/
+thread-artifacts/
+tools/

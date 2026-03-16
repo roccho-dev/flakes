@@ -1,0 +1,10 @@
+suite_name	default_outputs	output_pairs_rel
+semantic_core	1	-
+provenance_audit	1	-
+semantic_graph	1	-
+semantic_dependency	1	-
+semantic_evidence	1	-
+test_spec	1	-
+implementation_satisfier	1	-
+runtime_usecase	1	-
+whole_system_split	0	tests_next/whole_system_split/output_pairs.tsv
