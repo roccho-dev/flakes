@@ -1,0 +1,18 @@
+@import Target :- tsv { resource = "Target.tsv" } .
+@import TargetPopulation :- tsv { resource = "TargetPopulation.tsv" } .
+@import EventAnchor :- tsv { resource = "EventAnchor.tsv" } .
+@import ClockSource :- tsv { resource = "ClockSource.tsv" } .
+@import ObservationWindow :- tsv { resource = "ObservationWindow.tsv" } .
+@import SuccessMetricIdentity :- tsv { resource = "SuccessMetricIdentity.tsv" } .
+
+Violation(semantic_target_missing_population_definition, ?t, ?t) :- Target(?t), ~TargetPopulation(?t, _).
+Violation(semantic_target_missing_event_anchor, ?t, ?t) :- Target(?t), ~EventAnchor(?t, _).
+Violation(semantic_target_missing_clock_source, ?t, ?t) :- Target(?t), ~ClockSource(?t, _).
+Violation(semantic_target_missing_observation_window, ?t, ?t) :- Target(?t), ~ObservationWindow(?t, _).
+Violation(semantic_target_missing_success_metric_identity, ?t, ?t) :- Target(?t), ~SuccessMetricIdentity(?t, _).
+
+HasViolation(?t) :- Violation(_, ?t, _).
+Achieved(?t) :- Target(?t), ~HasViolation(?t).
+
+@export Violation :- csv { resource = "Violation.csv" } .
+@export Achieved :- csv { resource = "Achieved.csv" } .

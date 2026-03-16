@@ -1,0 +1,5 @@
+case_id	description
+pa01	run without origin should fail
+pa02	origin source without source record should fail
+pa03	supersedes with missing old run should fail
+pa04	supersedes self cycle should fail

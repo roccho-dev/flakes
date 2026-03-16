@@ -1,0 +1,61 @@
+red_case_id	red_slug	green_case_id	green_slug	green_fix_summary
+fe01	frontend_root_missing_population_definition	fg01	goal_event_happy_path_single_population_single_event	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe02	frontend_root_missing_event_anchor	fg01	goal_event_happy_path_single_population_single_event	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe03	frontend_root_missing_clock_source	fg01	goal_event_happy_path_single_population_single_event	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe04	frontend_root_missing_observation_window	fg01	goal_event_happy_path_single_population_single_event	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe05	frontend_root_missing_success_metric_identity	fg01	goal_event_happy_path_single_population_single_event	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe06	frontend_root_missing_guardrail_identity	fg03	objective_guardrail_assumption_separated_cleanly	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe07	frontend_objective_guardrail_collision	fg03	objective_guardrail_assumption_separated_cleanly	Separate the colliding semantics so one identity has one responsibility.
+fe08	frontend_assumption_compiled_as_fact	fg03	objective_guardrail_assumption_separated_cleanly	Restore the violated contract and keep the connected trace intact.
+fe09	frontend_constraint_compiled_as_objective	fg03	objective_guardrail_assumption_separated_cleanly	Restore the violated contract and keep the connected trace intact.
+fe10	frontend_quantifier_domain_missing	fg02	goal_event_happy_path_grouped_event_rate	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe11	frontend_event_identity_missing	fg02	goal_event_happy_path_grouped_event_rate	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe12	frontend_join_key_missing	fg02	goal_event_happy_path_grouped_event_rate	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe13	frontend_aggregation_subject_ambiguous	fg02	goal_event_happy_path_grouped_event_rate	Restore the violated contract and keep the connected trace intact.
+fe14	frontend_unknown_null_policy_missing	fg02	goal_event_happy_path_grouped_event_rate	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe15	frontend_closed_world_policy_missing	fg02	goal_event_happy_path_grouped_event_rate	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe16	frontend_measurement_source_missing	fg02	goal_event_happy_path_grouped_event_rate	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe17	frontend_compile_trace_missing	fg04	compile_trace_complete_with_no_loss	Add the missing required fact or obligation and reconnect it to the same source identity.
+fe18	frontend_compile_loss_unmarked	fg05	compile_trace_complete_with_declared_sound_approximation	Restore the violated contract and keep the connected trace intact.
+ls01	set_clause_missing_quantifier_kind	fg07	exact_dataset_leaf_lowerable_to_set_backend	Add the missing required fact or obligation and reconnect it to the same source identity.
+ls02	set_clause_missing_domain_scope	fg07	exact_dataset_leaf_lowerable_to_set_backend	Add the missing required fact or obligation and reconnect it to the same source identity.
+ls03	set_clause_missing_grouping_key_when_aggregated	fg07	exact_dataset_leaf_lowerable_to_set_backend	Add the missing required fact or obligation and reconnect it to the same source identity.
+ls04	set_clause_missing_clock_binding	fg07	exact_dataset_leaf_lowerable_to_set_backend	Add the missing required fact or obligation and reconnect it to the same source identity.
+ls05	set_clause_conflicting_window_semantics	fg07	exact_dataset_leaf_lowerable_to_set_backend	Separate the colliding semantics so one identity has one responsibility.
+ls06	backend_capability_missing	fg06	exact_leaf_lowerable_to_single_instance_backend	Add the missing required fact or obligation and reconnect it to the same source identity.
+ls07	backend_capability_mismatch	fg06	exact_leaf_lowerable_to_single_instance_backend	Restore the violated contract and keep the connected trace intact.
+ls08	exact_lowering_without_equivalence_basis	fg06	exact_leaf_lowerable_to_single_instance_backend	Restore the violated contract and keep the connected trace intact.
+ls09	approximate_lowering_without_soundness_direction	fg08	mixed_backend_target_with_declared_soundness_policy	Declare the approximation direction explicitly at the clause and root levels.
+ls10	backend_specific_grammar_leaked_to_canonical_ir	fg06	exact_leaf_lowerable_to_single_instance_backend	Move backend-native syntax out of canonical IR and keep only backend-neutral meaning.
+ls11	single_instance_backend_claims_dataset_semantics	fg07	exact_dataset_leaf_lowerable_to_set_backend	Route dataset semantics to a set-capable backend or decompose it before lowering.
+ls12	artifact_cover_missing_for_lowered_clause	fg06	exact_leaf_lowerable_to_single_instance_backend	Add the missing required fact or obligation and reconnect it to the same source identity.
+ls13	artifact_identity_conflict	fg08	mixed_backend_target_with_declared_soundness_policy	Restore the violated contract and keep the connected trace intact.
+ls14	lowering_trace_missing_source_clause	fg08	mixed_backend_target_with_declared_soundness_policy	Add the missing required fact or obligation and reconnect it to the same source identity.
+ls15	mixed_backend_root_missing_soundness_policy	fg08	mixed_backend_target_with_declared_soundness_policy	Add the missing required fact or obligation and reconnect it to the same source identity.
+ls16	lowered_clause_missing_backend_identity	fg06	exact_leaf_lowerable_to_single_instance_backend	Attach ClauseBackend so the lowering path names the backend identity explicitly.
+ls17	lowered_clause_missing_lowering_mode	fg06	exact_leaf_lowerable_to_single_instance_backend	Attach ClauseLoweringMode so the lowering path declares exact or approximate explicitly.
+ls18	lowered_clause_missing_feature_declaration	fg06	exact_leaf_lowerable_to_single_instance_backend	Attach ClauseFeature so capability matching can see which semantic subset the clause needs.
+ls19	lowered_clause_missing_artifact_identity	fg06	exact_leaf_lowerable_to_single_instance_backend	Attach ClauseArtifact so the lowered clause has a concrete artifact identity.
+rq01	runtime_timeout_test_missing	fg10	external_dependency_runtime_obligations_attached	Add the missing required fact or obligation and reconnect it to the same source identity.
+rq02	runtime_retry_test_missing	fg10	external_dependency_runtime_obligations_attached	Add the missing required fact or obligation and reconnect it to the same source identity.
+rq03	runtime_duplicate_event_test_missing	fg10	external_dependency_runtime_obligations_attached	Add the missing required fact or obligation and reconnect it to the same source identity.
+rq04	runtime_reorder_test_missing	fg10	external_dependency_runtime_obligations_attached	Add the missing required fact or obligation and reconnect it to the same source identity.
+rq05	runtime_staleness_test_missing	fg10	external_dependency_runtime_obligations_attached	Add the missing required fact or obligation and reconnect it to the same source identity.
+rq06	runtime_counterexample_replay_missing	fg10	external_dependency_runtime_obligations_attached	Add the missing required fact or obligation and reconnect it to the same source identity.
+rq07	usecase_latency_budget_missing	fg11	quality_budgets_and_authz_bound_to_usecase	Add the missing required fact or obligation and reconnect it to the same source identity.
+rq08	usecase_cost_budget_missing	fg11	quality_budgets_and_authz_bound_to_usecase	Add the missing required fact or obligation and reconnect it to the same source identity.
+rq09	usecase_authz_contract_missing	fg11	quality_budgets_and_authz_bound_to_usecase	Add the missing required fact or obligation and reconnect it to the same source identity.
+rq10	production_trace_binding_missing	fg11	quality_budgets_and_authz_bound_to_usecase	Add the missing required fact or obligation and reconnect it to the same source identity.
+sa01	necessity_claim_missing_ablation_case	fg09	adequacy_obligations_attached_for_and_or_claims	Add the missing required fact or obligation and reconnect it to the same source identity.
+sa02	sufficiency_claim_missing_counterexample_case	fg09	adequacy_obligations_attached_for_and_or_claims	Add the missing required fact or obligation and reconnect it to the same source identity.
+sa03	complete_or_branch_missing_gap_scan	fg09	adequacy_obligations_attached_for_and_or_claims	Add the missing required fact or obligation and reconnect it to the same source identity.
+sa04	assumption_missing_break_case	fg09	adequacy_obligations_attached_for_and_or_claims	Add the missing required fact or obligation and reconnect it to the same source identity.
+sa05	hidden_dependency_missing_declaration	fg09	adequacy_obligations_attached_for_and_or_claims	Add the missing required fact or obligation and reconnect it to the same source identity.
+sa06	tradeoff_goal_missing_conflict_clause	fg09	adequacy_obligations_attached_for_and_or_claims	Add the missing required fact or obligation and reconnect it to the same source identity.
+sa07	approximation_claim_missing_proof_anchor	fg09	adequacy_obligations_attached_for_and_or_claims	Add the missing required fact or obligation and reconnect it to the same source identity.
+sa08	exact_only_clause_missing_exactness_anchor	fg09	adequacy_obligations_attached_for_and_or_claims	Attach a machine-readable exactness anchor, such as EquivalenceBasis, ExactnessAnchor, or ProofBackendTarget.
+tr01	whole_system_target_missing_goal_event_source	fg12	whole_system_goal_event_to_artifact_trace_complete	Bind the target back to its goal/event source and keep the whole-system trace connected.
+tr02	whole_system_target_missing_usecase_link	fg12	whole_system_goal_event_to_artifact_trace_complete	Attach the missing UseCaseForTarget link so target achievement can depend on the runtime path.
+tr03	whole_system_exact_clause_missing_witness_obligation	fg12	whole_system_goal_event_to_artifact_trace_complete	Attach the missing ClauseWitnessObligation to the exact lowered clause.
+tr04	whole_system_target_blocked_by_linked_usecase_violation	fg12	whole_system_goal_event_to_artifact_trace_complete	Repair the linked use-case runtime obligation so both the use case and the whole-system target can achieve.
+tr05	whole_system_lowered_clause_missing_artifact_identity	fg12	whole_system_goal_event_to_artifact_trace_complete	Attach ClauseArtifact to every lowered clause in the whole-system target so the artifact trace can really close.

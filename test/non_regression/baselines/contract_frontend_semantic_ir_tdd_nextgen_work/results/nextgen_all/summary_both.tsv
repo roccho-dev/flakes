@@ -1,0 +1,10 @@
+suite_name	mode	result
+semantic_core	both	PASS
+provenance_audit	both	PASS
+semantic_graph	both	PASS
+semantic_dependency	both	PASS
+semantic_evidence	both	PASS
+test_spec	both	PASS
+implementation_satisfier	both	PASS
+runtime_usecase	both	PASS
+whole_system_split	both	PASS
