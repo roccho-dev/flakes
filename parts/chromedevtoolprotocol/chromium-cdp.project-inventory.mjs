@@ -1,0 +1,538 @@
+// List Projects + Threads (unprojected/projected) via CDP/qjs.
+//
+// Output
+// - Markdown tables to stdout (easy to paste into reports)
+// - Optional JSON + Markdown files to --outDir
+//
+// Runtime: quickjs-ng (qjs) with --std
+//
+// Example
+//   nix shell .#chromium-cdp-tools
+//   export HQ_CHROME_ADDR=127.0.0.1 HQ_CHROME_PORT=9223
+//   chromium-cdp "https://chatgpt.com" &
+//   qjs --std -m parts/chromedevtoolprotocol/chromium-cdp.project-inventory.mjs \
+//     --url "https://chatgpt.com/" \
+//     --outDir /tmp/hq_project_inventory
+
+import {
+  cdpCall,
+  cdpEvaluate,
+  cdpList,
+  cdpNew,
+  cdpVersion,
+  getDefaultAddr,
+  getDefaultPort,
+  sleepMs,
+} from "./chromium-cdp.lib.mjs";
+
+function usage() {
+  std.err.puts(
+    "usage: qjs --std -m chromium-cdp.project-inventory.mjs [--url <https://chatgpt.com/>] [--outDir <dir>] [--limitProjects 50] [--limitUnprojected 40] [--limitProjected 40] [--baseScrollRounds 6] [--projectScrollRounds 10] [--scrollDelayMs 250] [--debug] [--addr 127.0.0.1] [--port 9222] [--waitMs 800] [--timeoutMs 60000]\n",
+  );
+  std.err.flush();
+}
+
+function parseArgs(argv) {
+  const out = {
+    addr: getDefaultAddr(),
+    port: getDefaultPort(),
+    url: "https://chatgpt.com/",
+    outDir: null,
+    limitProjects: 50,
+    limitUnprojected: 40,
+    limitProjected: 40,
+    baseScrollRounds: 6,
+    projectScrollRounds: 10,
+    scrollDelayMs: 250,
+    debug: false,
+    waitMs: 800,
+    timeoutMs: 60000,
+  };
+
+  for (let i = 1; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--addr" && i + 1 < argv.length) out.addr = argv[++i];
+    else if (a === "--port" && i + 1 < argv.length) out.port = Number(argv[++i]) || out.port;
+    else if (a === "--url" && i + 1 < argv.length) out.url = argv[++i];
+    else if (a === "--outDir" && i + 1 < argv.length) out.outDir = argv[++i];
+    else if (a === "--limitProjects" && i + 1 < argv.length) out.limitProjects = Number(argv[++i]) || out.limitProjects;
+    else if (a === "--limitUnprojected" && i + 1 < argv.length) out.limitUnprojected = Number(argv[++i]) || out.limitUnprojected;
+    else if (a === "--limitProjected" && i + 1 < argv.length) out.limitProjected = Number(argv[++i]) || out.limitProjected;
+    else if (a === "--baseScrollRounds" && i + 1 < argv.length) out.baseScrollRounds = Number(argv[++i]) || out.baseScrollRounds;
+    else if (a === "--projectScrollRounds" && i + 1 < argv.length) out.projectScrollRounds = Number(argv[++i]) || out.projectScrollRounds;
+    else if (a === "--scrollDelayMs" && i + 1 < argv.length) out.scrollDelayMs = Number(argv[++i]) || out.scrollDelayMs;
+    else if (a === "--debug") out.debug = true;
+    else if (a === "--waitMs" && i + 1 < argv.length) out.waitMs = Number(argv[++i]) || out.waitMs;
+    else if (a === "--timeoutMs" && i + 1 < argv.length) out.timeoutMs = Number(argv[++i]) || out.timeoutMs;
+    else if (a === "-h" || a === "--help") return null;
+    else return null;
+  }
+
+  out.limitProjects = Math.max(1, Math.min(200, Math.floor(out.limitProjects || 50)));
+  out.limitUnprojected = Math.max(1, Math.min(200, Math.floor(out.limitUnprojected || 40)));
+  out.limitProjected = Math.max(1, Math.min(400, Math.floor(out.limitProjected || 40)));
+  out.baseScrollRounds = Math.max(0, Math.min(60, Math.floor(out.baseScrollRounds || 0)));
+  out.projectScrollRounds = Math.max(0, Math.min(120, Math.floor(out.projectScrollRounds || 0)));
+  out.scrollDelayMs = Math.max(0, Math.min(5000, Math.floor(out.scrollDelayMs || 0)));
+  out.waitMs = Math.max(0, Math.floor(out.waitMs || 0));
+  out.timeoutMs = Math.max(1000, Math.floor(out.timeoutMs || 0));
+
+  if (!out.url) out.url = "https://chatgpt.com/";
+  return out;
+}
+
+function ensureDir(path) {
+  if (!path) return;
+  const rc = os.exec(["mkdir", "-p", String(path)], { block: true, stdout: 2, stderr: 2 });
+  if (rc !== 0) throw new Error(`mkdir -p failed rc=${rc}: ${path}`);
+}
+
+function joinPath(a, b) {
+  const left = String(a || "");
+  const right = String(b || "");
+  if (!left) return right;
+  if (!right) return left;
+  if (left.endsWith("/")) return left + (right.startsWith("/") ? right.slice(1) : right);
+  return left + (right.startsWith("/") ? right : "/" + right);
+}
+
+function writeOptional(path, data) {
+  if (!path) return;
+  std.writeFile(path, data);
+}
+
+function extractConversationId(url) {
+  const m = String(url || "").match(/\/c\/([0-9a-fA-F-]{16,})/);
+  return m ? m[1] : null;
+}
+
+function extractProjectId(url) {
+  const m = String(url || "").match(/\/g\/g-p-([^/]+)/);
+  return m ? m[1] : null;
+}
+
+function normalizeAbsUrl(href) {
+  const h = String(href || "");
+  if (!h) return h;
+  if (h.startsWith("http://") || h.startsWith("https://")) return h;
+  if (h.startsWith("/")) return "https://chatgpt.com" + h;
+  return h;
+}
+
+function pickTargetByUrl(targets, url) {
+  const pages = (targets || []).filter((t) => t && t.type === "page" && t.webSocketDebuggerUrl);
+  const u = String(url || "");
+  let cands = pages.filter((t) => String(t.url || "") === u);
+  if (cands.length === 0) cands = pages.filter((t) => String(t.url || "").startsWith(u));
+  if (cands.length === 0) {
+    const cid = extractConversationId(u);
+    if (cid) cands = pages.filter((t) => String(t.url || "").includes(cid));
+  }
+  return cands.length ? cands[cands.length - 1] : null;
+}
+
+function openOrFind(args, url) {
+  const found = pickTargetByUrl(cdpList(args.addr, args.port), url);
+  return found || cdpNew(args.addr, args.port, url);
+}
+
+function mkCaller(wsUrl) {
+  let nextId = 1;
+  const shouldRetry = (e) => String(e || "").includes("WouldBlock");
+  const withRetry = (fn) => {
+    let last = null;
+    for (let i = 0; i < 4; i++) {
+      try {
+        return fn();
+      } catch (e) {
+        last = e;
+        if (!shouldRetry(e) || i === 3) throw e;
+        sleepMs(150 + i * 200);
+      }
+    }
+    throw last || new Error("retry failed");
+  };
+  const call = (method, params, timeoutMs) => {
+    const req = { id: nextId++, method, params: params || {} };
+    return withRetry(() => cdpCall(wsUrl, req, timeoutMs || 60000));
+  };
+
+  const evalDetailed = (expression, opts) => {
+    const o = opts || {};
+    const resp = call(
+      "Runtime.evaluate",
+      {
+        expression,
+        returnByValue: true,
+        awaitPromise: !!o.awaitPromise,
+      },
+      o.timeoutMs || 60000,
+    );
+
+    const r = resp && resp.result ? resp.result : null;
+    const ro = r && r.result ? r.result : null;
+    const hasValue = !!(ro && Object.prototype.hasOwnProperty.call(ro, "value"));
+    const value = hasValue ? ro.value : undefined;
+    const ex = r && r.exceptionDetails ? r.exceptionDetails : null;
+    return { resp, hasValue, value, remoteObject: ro, exceptionDetails: ex };
+  };
+
+  const evalValue = (expression, opts) => {
+    const o = opts || {};
+    const resp = withRetry(() => cdpEvaluate(wsUrl, expression, {
+      id: nextId++,
+      returnByValue: true,
+      awaitPromise: !!o.awaitPromise,
+      timeoutMs: o.timeoutMs || 60000,
+    }));
+    return resp && resp.result && resp.result.result ? resp.result.result.value : null;
+  };
+  return { call, evalValue, evalDetailed };
+}
+
+function ensureSidebarOpenExpr() {
+  return `(() => {
+    const isVisible = (el) => !!el && !el.hidden && getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden';
+    const close = document.querySelector('button[data-testid="close-sidebar-button"]');
+    if (close && isVisible(close)) return { ok: true, already_open: true };
+    const open = document.querySelector('button[aria-label="Open sidebar"],button[aria-label="サイドバーを開く"],button[aria-label="Open navigation"],button[aria-label="Open"]');
+    if (!open || !isVisible(open)) return { ok: false, reason: 'open_sidebar_button_not_found' };
+    try { open.click(); } catch (_) {}
+    return { ok: true, already_open: false };
+  })()`;
+}
+
+function scrollToBottomExpr(rootSelector) {
+  const sel = JSON.stringify(String(rootSelector || ""));
+  return `(() => {
+    const sel = ${sel};
+    const pick = () => {
+      if (sel) {
+        try {
+          const el = document.querySelector(sel);
+          if (el) return el;
+        } catch {}
+      }
+      return document.scrollingElement || document.documentElement || document.body;
+    };
+    const el = pick();
+    if (!el) return { ok: false, reason: 'no_scroll_el' };
+    try { el.scrollTop = el.scrollHeight; } catch (_) {}
+    return { ok: true, scrolled: true, selector: sel || null, scrollTop: el.scrollTop, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight };
+  })()`;
+}
+
+function listProjectsAndUnprojectedExpr(limitProjects, limitUnprojected) {
+  const lp = Math.max(1, Math.min(200, Number(limitProjects) || 50));
+  const lu = Math.max(1, Math.min(200, Number(limitUnprojected) || 40));
+  return `(() => {
+    const limitProjects = ${lp};
+    const limitUnprojected = ${lu};
+    const isVisible = (el) => !!el && !el.hidden && getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden';
+    const norm = (s) => String(s || '').trim();
+
+    const nav = document.querySelector('nav') || document.body;
+    const links = Array.from(nav.querySelectorAll('a[href]')).filter(isVisible);
+
+    const projects = [];
+    const projSeen = new Set();
+    const unproj = [];
+    const threadSeen = new Set();
+
+    for (const a of links) {
+      const href = String(a.getAttribute('href') || '');
+      const text = norm(a.innerText || a.textContent);
+      if (!href) continue;
+
+      // Projects
+      if (href.includes('/g/g-p-') && href.includes('/project')) {
+        const m = href.match(/\\/g\\/g-p-([^/]+)/);
+        const pid = m ? String(m[1] || '') : '';
+        if (pid && !projSeen.has(pid) && text) {
+          projSeen.add(pid);
+          projects.push({ project_id: pid, name: text.slice(0, 120), href });
+          if (projects.length >= limitProjects) {
+            // keep scanning for unprojected threads
+          }
+        }
+        continue;
+      }
+
+      // Unprojected threads
+      if (href.startsWith('/c/') && !href.includes('/g/g-p-')) {
+        const m = href.match(/\\/c\\/([0-9a-fA-F-]{16,})/);
+        const tid = m ? String(m[1] || '') : '';
+        if (tid && !threadSeen.has(tid) && text) {
+          threadSeen.add(tid);
+          // The link often includes multiple lines; keep first non-empty line.
+          const lines = text.split('\\n').map((s) => norm(s)).filter((s) => s.length);
+          const title = lines.length ? lines[0] : text;
+          unproj.push({ thread_id: tid, title: title.slice(0, 160), href });
+          if (unproj.length >= limitUnprojected) {
+            // continue; allow projects scan to finish
+          }
+        }
+      }
+    }
+
+    return {
+      ok: true,
+      href: location.href,
+      title: document.title,
+      projects: projects.slice(0, limitProjects),
+      unprojected_threads: unproj.slice(0, limitUnprojected),
+    };
+  })()`;
+}
+
+function listProjectedThreadsExpr(projectId, limitProjected) {
+  const pid = JSON.stringify(String(projectId || ""));
+  const lim = Math.max(1, Math.min(400, Number(limitProjected) || 40));
+  return `(() => {
+    const projectId = ${pid};
+    const limit = ${lim};
+    const isVisible = (el) => !!el && !el.hidden && getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden';
+    const norm = (s) => String(s || '').trim();
+
+    // Project chat links are sometimes rendered in the sidebar (nav) rather than main.
+    // We restrict by URL pattern '/g/g-p-<projectId>/c/<thread>' so scanning the whole
+    // document is still safe.
+    const links = Array.from(document.querySelectorAll('a[href]')).filter(isVisible);
+    const out = [];
+    const seen = new Set();
+
+    for (const a of links) {
+      const href = String(a.getAttribute('href') || '');
+      if (!href) continue;
+      // Restrict to project chat links.
+      if (projectId && !href.includes('/g/g-p-' + projectId + '/c/')) continue;
+
+      const m = href.match(/\\/c\\/([0-9a-fA-F-]{16,})/);
+      const tid = m ? String(m[1] || '') : '';
+      if (!tid || seen.has(tid)) continue;
+
+      const text = norm(a.innerText || a.textContent);
+      if (!text) continue;
+      const lines = text.split('\\n').map((s) => norm(s)).filter((s) => s.length);
+      const title = lines.length ? lines[0] : text;
+      const date = lines.length >= 2 ? lines[lines.length - 1] : '';
+
+      seen.add(tid);
+      out.push({ thread_id: tid, title: title.slice(0, 160), date: date.slice(0, 60), href });
+      if (out.length >= limit) break;
+    }
+
+    return { ok: true, project_id: projectId, threads: out };
+  })()`;
+}
+
+function mergeByThreadId(rows, more) {
+  const out = Array.isArray(rows) ? rows.slice() : [];
+  const seen = new Set(out.map((r) => String(r && r.thread_id || "")).filter((x) => x));
+  for (const r of (Array.isArray(more) ? more : [])) {
+    if (!r) continue;
+    const tid = String(r.thread_id || "");
+    if (!tid || seen.has(tid)) continue;
+    seen.add(tid);
+    out.push(r);
+  }
+  return out;
+}
+
+function mdEscape(s) {
+  return String(s || "").replaceAll("|", "\\|").replaceAll("\n", " ");
+}
+
+function renderMarkdown(inv) {
+  const lines = [];
+  lines.push("PROJECT_INVENTORY");
+  lines.push("");
+  lines.push(`CDP: ${inv.addr}:${inv.port}`);
+  lines.push(`Timestamp (UTC): ${inv.ts_utc}`);
+  lines.push("");
+
+  lines.push("PROJECTS");
+  lines.push("| name | project_id | url |");
+  lines.push("|---|---|---|");
+  for (const p of inv.projects) {
+    lines.push(`| ${mdEscape(p.name)} | ${mdEscape(p.project_id)} | ${mdEscape(p.url)} |`);
+  }
+  lines.push("");
+
+  lines.push("THREADS_UNPROJECTED");
+  lines.push("| idx | title | thread_id | url |");
+  lines.push("|---:|---|---|---|");
+  for (let i = 0; i < inv.unprojected_threads.length; i++) {
+    const t = inv.unprojected_threads[i];
+    lines.push(`| ${i + 1} | ${mdEscape(t.title)} | ${mdEscape(t.thread_id)} | ${mdEscape(t.url)} |`);
+  }
+  lines.push("");
+
+  for (const p of inv.projects) {
+    const key = p.project_id;
+    const rows = inv.projected_threads[key] || [];
+    lines.push(`THREADS_PROJECTED: ${p.name} (${p.project_id})`);
+    lines.push("| idx | title | thread_id | date | url |");
+    lines.push("|---:|---|---|---|---|");
+    for (let i = 0; i < rows.length; i++) {
+      const t = rows[i];
+      lines.push(`| ${i + 1} | ${mdEscape(t.title)} | ${mdEscape(t.thread_id)} | ${mdEscape(t.date || "")} | ${mdEscape(t.url)} |`);
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n") + "\n";
+}
+
+function main(argv) {
+  const args = parseArgs(argv);
+  if (!args) {
+    usage();
+    return 2;
+  }
+
+  if (args.outDir) ensureDir(args.outDir);
+
+  cdpVersion(args.addr, args.port);
+
+  const baseTarget = openOrFind(args, args.url);
+  const base = mkCaller(baseTarget.webSocketDebuggerUrl);
+  try { base.call("Page.bringToFront", {}); } catch {}
+  sleepMs(args.waitMs);
+
+  // Ensure sidebar is expanded so Projects/Chats are in DOM.
+  base.evalValue(ensureSidebarOpenExpr(), { timeoutMs: 60000 });
+  sleepMs(250);
+
+  let baseListingDetails = null;
+  let baseListing = null;
+  let projects = [];
+  let unprojected = [];
+  let prevCounts = { p: 0, u: 0 };
+  for (let round = 0; round <= args.baseScrollRounds; round++) {
+    baseListingDetails = base.evalDetailed(listProjectsAndUnprojectedExpr(args.limitProjects, args.limitUnprojected), { timeoutMs: 60000 });
+    baseListing = baseListingDetails.hasValue ? baseListingDetails.value : null;
+    projects = (baseListing && baseListing.ok && Array.isArray(baseListing.projects)) ? baseListing.projects : [];
+    unprojected = (baseListing && baseListing.ok && Array.isArray(baseListing.unprojected_threads)) ? baseListing.unprojected_threads : [];
+
+    const reached = (projects.length >= args.limitProjects) && (unprojected.length >= args.limitUnprojected);
+    const stuck = (projects.length === prevCounts.p) && (unprojected.length === prevCounts.u);
+    prevCounts = { p: projects.length, u: unprojected.length };
+    if (reached || stuck || round === args.baseScrollRounds) break;
+
+    // Sidebar/chat history can be virtualized; scroll nav down to load more.
+    try { base.evalValue(scrollToBottomExpr('nav'), { timeoutMs: 60000 }); } catch {}
+    sleepMs(Math.max(0, args.scrollDelayMs));
+  }
+
+  const projectedByProjectId = {};
+  const projectedDebugByProjectId = {};
+  for (const p of projects) {
+    const pid = p && p.project_id ? String(p.project_id) : "";
+    if (!pid) continue;
+    const url = normalizeAbsUrl(p.href);
+    const t = openOrFind(args, url);
+    const page = mkCaller(t.webSocketDebuggerUrl);
+    try { page.call("Page.bringToFront", {}); } catch {}
+    sleepMs(Math.max(400, args.waitMs));
+
+    // Project chat lists can be virtualized; scroll main to accumulate.
+    let listingDetails = null;
+    let listing = null;
+    let threads = [];
+    let prevLen = 0;
+    for (let round = 0; round <= args.projectScrollRounds; round++) {
+      listingDetails = page.evalDetailed(listProjectedThreadsExpr(pid, args.limitProjected), { timeoutMs: 60000 });
+      listing = listingDetails.hasValue ? listingDetails.value : null;
+      const more = (listing && listing.ok && Array.isArray(listing.threads)) ? listing.threads : [];
+      threads = mergeByThreadId(threads, more);
+
+      const reached = threads.length >= args.limitProjected;
+      const stuck = threads.length === prevLen;
+      prevLen = threads.length;
+      if (reached || stuck || round === args.projectScrollRounds) break;
+
+      try { page.evalValue(scrollToBottomExpr('main'), { timeoutMs: 60000 }); } catch {}
+      sleepMs(Math.max(0, args.scrollDelayMs));
+    }
+    projectedByProjectId[pid] = threads.map((r) => ({
+      title: r.title,
+      thread_id: r.thread_id,
+      date: r.date || "",
+      url: normalizeAbsUrl(r.href),
+    }));
+
+    if (args.debug) {
+      projectedDebugByProjectId[pid] = {
+        has_value: !!(listingDetails && listingDetails.hasValue),
+        remote_type: (listingDetails && listingDetails.remoteObject) ? listingDetails.remoteObject.type : null,
+        remote_subtype: (listingDetails && listingDetails.remoteObject) ? (listingDetails.remoteObject.subtype || null) : null,
+        exception: (listingDetails && listingDetails.exceptionDetails)
+          ? {
+            text: String(listingDetails.exceptionDetails.text || ""),
+            lineNumber: listingDetails.exceptionDetails.lineNumber,
+            columnNumber: listingDetails.exceptionDetails.columnNumber,
+            description: listingDetails.exceptionDetails.exception ? String(listingDetails.exceptionDetails.exception.description || "") : "",
+          }
+          : null,
+      };
+    }
+  }
+
+  const inv = {
+    ts_utc: new Date().toISOString(),
+    addr: args.addr,
+    port: args.port,
+    base: {
+      url: args.url,
+      target: { id: baseTarget.id, title: baseTarget.title, url: baseTarget.url },
+      listing: baseListing,
+      debug: args.debug
+        ? {
+          has_value: !!(baseListingDetails && baseListingDetails.hasValue),
+          remote_type: (baseListingDetails && baseListingDetails.remoteObject) ? baseListingDetails.remoteObject.type : null,
+          remote_subtype: (baseListingDetails && baseListingDetails.remoteObject) ? (baseListingDetails.remoteObject.subtype || null) : null,
+          exception: (baseListingDetails && baseListingDetails.exceptionDetails)
+            ? {
+              text: String(baseListingDetails.exceptionDetails.text || ""),
+              lineNumber: baseListingDetails.exceptionDetails.lineNumber,
+              columnNumber: baseListingDetails.exceptionDetails.columnNumber,
+              description: baseListingDetails.exceptionDetails.exception ? String(baseListingDetails.exceptionDetails.exception.description || "") : "",
+            }
+            : null,
+        }
+        : undefined,
+    },
+    projects: projects.map((p) => ({
+      name: String(p.name || ""),
+      project_id: String(p.project_id || ""),
+      url: normalizeAbsUrl(p.href),
+    })),
+    unprojected_threads: unprojected.map((t) => ({
+      title: String(t.title || ""),
+      thread_id: String(t.thread_id || ""),
+      url: normalizeAbsUrl(t.href),
+    })),
+    projected_threads: projectedByProjectId,
+    projected_debug: args.debug ? projectedDebugByProjectId : undefined,
+  };
+
+  const md = renderMarkdown(inv);
+  std.out.puts(md);
+  std.out.flush();
+
+  if (args.outDir) {
+    writeOptional(joinPath(args.outDir, "PROJECT_INVENTORY.md"), md);
+    writeOptional(joinPath(args.outDir, "PROJECT_INVENTORY.json"), JSON.stringify(inv, null, 2) + "\n");
+  }
+
+  return 0;
+}
+
+try {
+  std.exit(main(scriptArgs));
+} catch (e) {
+  std.err.puts(String(e && e.stack ? e.stack : e) + "\n");
+  std.err.flush();
+  std.exit(1);
+}
