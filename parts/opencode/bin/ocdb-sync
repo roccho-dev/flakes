@@ -4,9 +4,10 @@ set -euo pipefail
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOL_HOME="$(cd "$SELF_DIR/.." && pwd)"
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/opencode"
+STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 CONFIG_FILE="${OCDB_CONFIG:-$TOOL_HOME/sync/config.env}"
 LOCAL_DB_PATH="${OCDB_LOCAL_DB_PATH:-$DATA_HOME/opencode.db}"
-TMP_ROOT="$TOOL_HOME/sync/tmp"
+TMP_ROOT="${OCDB_TMP_ROOT:-$STATE_HOME/ocdb-sync}"
 
 if [ -f "$CONFIG_FILE" ]; then
   . "$CONFIG_FILE"
@@ -41,9 +42,9 @@ Commands:
   push          Snapshot local oc.db, copy it to peer, install it there, and verify.
 
 Configuration:
-  Default config path: ~/repos/flakes/.../opencode/sync/config.env
+  Default config path: <tool-home>/sync/config.env
   Required for peer actions: PEER_SSH
-  Optional: PEER_DB_PATH, OCDB_LOCAL_DB_PATH, OCDB_KEEP_BACKUP=1
+  Optional: PEER_DB_PATH, OCDB_LOCAL_DB_PATH, OCDB_TMP_ROOT, OCDB_KEEP_BACKUP=1
 EOF
 }
 
@@ -86,7 +87,7 @@ cleanup() {
   fi
 }
 
-trap cleanup EXIT
+trap cleanup EXIT HUP INT TERM
 
 collect_stats_local() {
   local db="$1"
@@ -182,7 +183,7 @@ snapshot_local_db() {
   local src="$1"
   local out="$2"
   need_db "$src"
-  run_sqlite "$src" ".backup '$out'"
+  run_sqlite "$src" ".backup $out"
 }
 
 snapshot_peer_db() {
@@ -200,7 +201,7 @@ run_sqlite() {
   fi
 }
 [ -f "$src" ] || { printf 'error: database not found: %s\n' "$src" >&2; exit 1; }
-run_sqlite "$src" ".backup '$out'"
+run_sqlite "$src" ".backup $out"
 EOF
 }
 
