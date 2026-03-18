@@ -2,19 +2,19 @@
 
 Single-binary Zig replacement for the non-E2E HQ path.
 
-This app depends on the `chromedevtoolprotocol.zig` module repository.
+This app lives under `parts/hq.zig` and depends on the `chromedevtoolprotocol.zig` module repository.
 
 ## Module layout
 
-The build script looks for CDP in these layouts, in order:
+From `parts/hq.zig`, the build script looks for CDP in these layouts, in order:
 
-- `../chromedevtoolprotocol.zig/src/root.zig`
-- `../cdp/chromedevtoolprotocol.zig/src/root.zig`
+- `../../chromedevtoolprotocol.zig/src/root.zig`
 - `../../cdp/chromedevtoolprotocol.zig/src/root.zig`
+- `../../../cdp/chromedevtoolprotocol.zig/src/root.zig`
 
 You can also override discovery explicitly:
 
-- `zig build -Dcdp-root=../chromedevtoolprotocol.zig/src/root.zig`
+- `zig build -Dcdp-root=../../chromedevtoolprotocol.zig/src/root.zig`
 
 ## Baseline x86_64 builds
 

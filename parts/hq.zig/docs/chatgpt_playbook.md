@@ -53,8 +53,8 @@ merged into the repo with minimal human intervention.
 - NO POLLING: do not loop "sleep and check" in orchestration.
 - Do not trust UI coordinates; prefer semantic DOM operations.
 - Never accept artifacts without `MODEL_CONFIRMATION`.
-- Keep high-conflict files single-owner per cycle (e.g. `hq.zig/build.zig`).
-- Pro gating is DOM-based (see `hq.zig/docs/dom_model_gate.md`). Do not trust worker self-report.
+- Keep high-conflict files single-owner per cycle (e.g. `parts/hq.zig/build.zig`).
+- Pro gating is DOM-based (see `parts/hq.zig/docs/dom_model_gate.md`). Do not trust worker self-report.
 
 ## MODEL_CONFIRMATION (Mandatory)
 
