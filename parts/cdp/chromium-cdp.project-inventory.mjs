@@ -10,7 +10,7 @@
 //   nix shell .#chromium-cdp-tools
 //   export HQ_CHROME_ADDR=127.0.0.1 HQ_CHROME_PORT=9223
 //   chromium-cdp "https://chatgpt.com" &
-//   qjs --std -m parts/chromedevtoolprotocol/chromium-cdp.project-inventory.mjs \
+//   qjs --std -m parts/cdp/chromium-cdp.project-inventory.mjs \
 //     --url "https://chatgpt.com/" \
 //     --outDir /tmp/hq_project_inventory
 
