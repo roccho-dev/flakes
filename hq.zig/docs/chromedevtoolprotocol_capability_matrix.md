@@ -6,8 +6,8 @@ Current proof state, refreshed against the live ChatGPT/CDP browser at `127.0.0.
 
 | Requirement | Script | Status | Fresh evidence |
 |---|---|---|---|
-| `project[] list/get` | `parts/chromedevtoolprotocol/chromium-cdp.project-inventory.mjs` | PROVEN | `/tmp/hq_project_inventory_recheck/PROJECT_INVENTORY.json` |
-| `project.thread[] list/get` | `parts/chromedevtoolprotocol/chromium-cdp.project-inventory.mjs` | PROVEN | `/tmp/hq_project_inventory_recheck/PROJECT_INVENTORY.json` |
+| `project[] list/get` | `parts/chromedevtoolprotocol/chromium-cdp.project-inventory.mjs` | PROVEN | `/tmp/hq_project_inventory_recheck2/PROJECT_INVENTORY.json` |
+| `project.thread[] list/get` | `parts/chromedevtoolprotocol/chromium-cdp.project-inventory.mjs` | PROVEN | `/tmp/hq_project_inventory_recheck2/PROJECT_INVENTORY.json` |
 | `project.source[] create` | `parts/chromedevtoolprotocol/chromium-cdp.project-sources-promote-turn.mjs` | PROVEN | `/tmp/hq_e2e_promote/promote.json` |
 | `project.source[] list/get` | `parts/chromedevtoolprotocol/chromium-cdp.project-sources-collect-files.mjs --findOnly` | PROVEN | `/tmp/hq_e2e_collect/findonly.json` |
 | `thread.file download` | `parts/chromedevtoolprotocol/chromium-cdp.download-chatgpt-artifacts.mjs` | PROVEN | `/tmp/hq_e2e_thread_download/download.json` |
@@ -34,3 +34,4 @@ Evidence:
   - `coreutils`
   - `repos/flakes#cdp-bridge`
 - `chromium-cdp-tools` was updated to include `coreutils`, because several existing scripts already rely on `mkdir`/`cp` style utilities.
+- Project-thread enumeration required one extra fix: explicitly reselect the `Chats` tab before scanning each project page, because some tabs were left on `Sources` and produced false-empty projected thread lists.
