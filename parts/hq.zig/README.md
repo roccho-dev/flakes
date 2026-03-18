@@ -7,6 +7,10 @@ This app lives under `parts/hq.zig` and depends on the `chromedevtoolprotocol.zi
 The repo-local CDP helpers and Nix glue live under `parts/cdp`; those are support
 tools around the dependency, not the dependency itself.
 
+Several ChatGPT/HQ automation scripts still live there as pre-Zig tooling. When
+they are ported, they should land in `parts/hq.zig` unless they collapse into
+generic reusable CDP primitives.
+
 ## Module layout
 
 From `parts/hq.zig`, the build script looks for CDP in these layouts, in order:
