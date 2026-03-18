@@ -1,6 +1,15 @@
-# opencode-auth
+# flakes
 
-OpenCode + opencode-openai-codex-auth configuration for OAuth authentication with ChatGPT Plus/Pro (Codex Subscription).
+Layered Nix repo for machine substrate, persistent user state, and reusable tool primitives.
+
+## Layers
+
+- `parts/os/`: machine substrate
+- `parts/user/`: persistent user layer
+- `parts/opencode/`, `parts/helix/`, `parts/languages/`: primitive and domain contracts
+- `parts/packages.nix`: assembles end-user entrypoints such as `editor-tools` and `git-tools`
+
+See `docs/architecture/layers.md` for the intended boundaries.
 
 ## Entrypoints
 
@@ -38,16 +47,18 @@ nix run .#help
 nix shell .#editor-tools -c opencode
 
 # Example: authenticate (requires network and user interaction)
-opencode auth login
+nix shell .#editor-tools -c opencode auth login
 
 # Example: smoke
-opencode --version
+nix shell .#editor-tools -c opencode --version
 ```
 
 ## Files
 
 - `opencode.json`: Minimal vanilla config (schema only)
 - `flake.nix`: flake-parts setup (no devShells)
+- `parts/packages.nix`: assembles end-user package entrypoints
+- `parts/opencode/package.nix`: shared wrapped `opencode` package used by shell and Home Manager
 - `parts/languages/*.nix`: Language tooling parts (v1 contract)
 
 ## DoD

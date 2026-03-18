@@ -20,7 +20,7 @@
       ];
 
       imports = [
-        ./parts/packages/default.nix
+        ./parts/packages.nix
         ./parts/local/default.nix
         ./parts/repo-checks.nix
         ./parts/tests/apps.nix
