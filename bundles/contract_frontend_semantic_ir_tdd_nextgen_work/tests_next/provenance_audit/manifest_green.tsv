@@ -1,0 +1,3 @@
+case_id	notes
+np02	decomposition run with origin member and origin view should pass green
+np05	revision run with valid predecessor and emitted targets should pass green

@@ -1,0 +1,3 @@
+case_id	description
+rt01	core passes while audit fails on missing origin metadata
+rt02	core and audit both pass on complete semantic+provenance facts

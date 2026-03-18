@@ -1,0 +1,33 @@
+@import Target :- tsv { resource = "Target.tsv" } .
+@import TargetPopulation :- tsv { resource = "TargetPopulation.tsv" } .
+@import EventAnchor :- tsv { resource = "EventAnchor.tsv" } .
+@import ClockSource :- tsv { resource = "ClockSource.tsv" } .
+@import ObservationWindow :- tsv { resource = "ObservationWindow.tsv" } .
+@import SuccessMetricIdentity :- tsv { resource = "SuccessMetricIdentity.tsv" } .
+@import Refines :- tsv { resource = "Refines.tsv" } .
+@import Dependency :- tsv { resource = "Dependency.tsv" } .
+@import ExactTarget :- tsv { resource = "ExactTarget.tsv" } .
+@import EvidenceObligation :- tsv { resource = "EvidenceObligation.tsv" } .
+
+Violation(target_missing_population_definition, ?t, ?t) :- Target(?t), ~TargetPopulation(?t, _).
+Violation(target_missing_event_anchor, ?t, ?t) :- Target(?t), ~EventAnchor(?t, _).
+Violation(target_missing_clock_source, ?t, ?t) :- Target(?t), ~ClockSource(?t, _).
+Violation(target_missing_observation_window, ?t, ?t) :- Target(?t), ~ObservationWindow(?t, _).
+Violation(target_missing_success_metric_identity, ?t, ?t) :- Target(?t), ~SuccessMetricIdentity(?t, _).
+
+Violation(refines_missing_child_target, ?child, ?parent) :- Refines(?child, ?parent), ~Target(?child).
+Violation(refines_missing_parent_target, ?child, ?parent) :- Refines(?child, ?parent), ~Target(?parent).
+Violation(refines_self_cycle, ?t, ?t) :- Refines(?t, ?t).
+
+Violation(dependency_missing_source_target, ?src, ?dst) :- Dependency(?src, _, ?dst), ~Target(?src).
+Violation(dependency_missing_target, ?src, ?dst) :- Dependency(?src, _, ?dst), Target(?src), ~Target(?dst).
+Violation(dependency_self_cycle, ?src, ?dst) :- Dependency(?src, _, ?dst), ?src = ?dst.
+Violation(exact_target_missing_target, ?t, ?t) :- ExactTarget(?t), ~Target(?t).
+Violation(exact_target_missing_evidence_obligation, ?t, ?t) :- ExactTarget(?t), Target(?t), ~EvidenceObligation(?t, _).
+Violation(evidence_obligation_missing_target, ?t, ?e) :- EvidenceObligation(?t, ?e), ~Target(?t).
+
+HasViolation(?x) :- Violation(_, ?x, _).
+Achieved(?t) :- Target(?t), ~HasViolation(?t).
+
+@export Violation :- csv { resource = "Violation.csv" } .
+@export Achieved :- csv { resource = "Achieved.csv" } .

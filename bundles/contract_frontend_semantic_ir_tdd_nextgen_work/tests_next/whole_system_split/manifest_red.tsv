@@ -1,0 +1,3 @@
+case_id	notes
+nw01	semantic target should still achieve when audit fails on origin view
+nw02	audit success should not mask semantic failure

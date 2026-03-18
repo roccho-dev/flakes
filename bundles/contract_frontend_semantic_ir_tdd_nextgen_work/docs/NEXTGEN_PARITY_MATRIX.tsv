@@ -1,0 +1,26 @@
+legacy_term	nextgen_term	mapping_status	owned_by_suite	notes
+Target	Target	exact	semantic_core	Semantic node stays atomic.
+TargetPopulation	TargetPopulation	exact	semantic_core	No semantic embedding change.
+EventAnchor	EventAnchor	exact	semantic_core	Still the event identity anchor.
+ClockSource	ClockSource	exact	semantic_core	Unchanged semantic responsibility.
+ObservationWindow	ObservationWindow	exact	semantic_core	Unchanged semantic responsibility.
+SuccessMetricIdentity	SuccessMetricIdentity	exact	semantic_core	Unchanged semantic responsibility.
+GuardrailIdentity	GuardrailIdentity	deferred	-	Not yet ported into nextgen suites.
+GoalEventSource	DecompositionRun+OriginSourceRef+RunEmitsTarget	split	provenance_audit,whole_system_split	Origin no longer hardcodes a global goal node.
+CompileTrace	provenance_strict (future finer split)	deferred	-	Will stay audit-side, not semantic core.
+CompileLoss	provenance_strict (future finer split)	deferred	-	Planned as translation/audit metadata only.
+SourceRole	OriginView	reframed	provenance_audit	Interpretation moved to run-scoped origin view.
+WholeSystemTarget	FocusTarget + nextgen suite composition	reframed	whole_system_split	No privileged semantic node remains.
+UseCaseForTarget	UseCaseForTarget	exact	runtime_usecase,whole_system_split	Still runtime linkage edge.
+ClauseWitnessObligation	EvidenceObligation	renamed	semantic_evidence	Contract obligation separated from fixture.
+ClauseArtifact	ArtifactIdentity	renamed	semantic_evidence	Artifact bridge kept strict-side.
+LatencyBudget	LatencyBudget	exact	runtime_usecase,whole_system_split	Unchanged budget responsibility.
+CostBudget	CostBudget	exact	runtime_usecase,whole_system_split	Unchanged budget responsibility.
+AuthzContract	AuthzContract	exact	runtime_usecase,whole_system_split	Unchanged runtime contract.
+ProductionTraceBinding	ProductionTraceBinding	exact	runtime_usecase,whole_system_split	Unchanged trace binding responsibility.
+NecessityClaim	DependsOn+DependencyMode(necessary)	split	semantic_dependency	Edge + mode split into independent terms.
+SufficiencyClaim	DependsOn+DependencyMode(sufficient)	split	semantic_dependency	Edge + mode split into independent terms.
+frontend Violation/Achieved	SemanticViolation/SemanticAchieved	refined	whole_system_split	Semantic verdicts now separated from audit.
+whole-system trace failure	AuditViolation/AuditAchieved	refined	whole_system_split	Audit failures no longer block semantic success.
+red/green executable spec	TestContractSet+TestCase	split	test_spec	Executable spec is explicit, not implicit in implementation.
+implementation responsibility	ImplementationSatisfier+SatisfiesTestCase	split	implementation_satisfier	Implementation is multi-test satisfier, not source of truth.

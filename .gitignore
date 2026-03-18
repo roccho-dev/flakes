@@ -4,5 +4,8 @@ result
 result-*
 .direnv/
 .envrc
-.worktree/
+**/.zig-cache/
+**/zig-out/
 .worktrees/
+thread-artifacts/
+tools/

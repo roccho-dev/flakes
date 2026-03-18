@@ -1,0 +1,24 @@
+@import Target :- tsv { resource = "Target.tsv" } .
+@import TestContractSet :- tsv { resource = "TestContractSet.tsv" } .
+@import ContractSetForTarget :- tsv { resource = "ContractSetForTarget.tsv" } .
+@import TestCase :- tsv { resource = "TestCase.tsv" } .
+@import TestCaseForContractSet :- tsv { resource = "TestCaseForContractSet.tsv" } .
+@import ImplementationSatisfier :- tsv { resource = "ImplementationSatisfier.tsv" } .
+@import ImplementationForTarget :- tsv { resource = "ImplementationForTarget.tsv" } .
+@import SatisfiesTestCase :- tsv { resource = "SatisfiesTestCase.tsv" } .
+
+Violation(implementation_assignment_missing_implementation, ?i, ?t) :- ImplementationForTarget(?i, ?t), ~ImplementationSatisfier(?i).
+Violation(implementation_assignment_missing_target, ?i, ?t) :- ImplementationForTarget(?i, ?t), ~Target(?t).
+Violation(implementation_target_missing_contract_set, ?i, ?t) :- ImplementationForTarget(?i, ?t), ~ContractSetForTarget(_, ?t).
+Violation(implementation_missing_generated_test_satisfaction, ?i, ?tc) :-
+  ImplementationForTarget(?i, ?t),
+  ContractSetForTarget(?s, ?t),
+  TestCaseForContractSet(?tc, ?s),
+  ~SatisfiesTestCase(?i, ?tc).
+Violation(implementation_satisfies_unknown_testcase, ?i, ?tc) :- SatisfiesTestCase(?i, ?tc), ~TestCase(?tc).
+
+HasViolation(?i) :- Violation(_, ?i, _).
+Achieved(?i) :- ImplementationSatisfier(?i), ~HasViolation(?i).
+
+@export Violation :- csv { resource = "Violation.csv" } .
+@export Achieved :- csv { resource = "Achieved.csv" } .

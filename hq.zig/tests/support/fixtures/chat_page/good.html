@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HQ Fixture Good</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f7f7f8; }
+      main { max-width: 720px; margin: 0 auto; background: white; border: 1px solid #d9d9de; border-radius: 12px; padding: 16px; }
+      form { display: grid; gap: 12px; }
+      textarea { min-height: 140px; width: 100%; }
+      .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+      #messages { margin-top: 16px; }
+      [data-role="assistant"] { margin-top: 12px; padding: 12px; border-radius: 10px; background: #eef6ff; }
+      #download[hidden] { display: none; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <form id="chat-form">
+        <label for="composer">Message</label>
+        <textarea id="composer" aria-label="Message" placeholder="Type a prompt"></textarea>
+        <div class="row">
+          <button id="attach" type="button" aria-label="Attach" data-testid="attach-button">Attach</button>
+          <button id="send" type="submit" aria-label="Send" disabled>Send</button>
+          <a id="download" hidden download="conversation.json" href="/fixture-download.json">Download conversation.json</a>
+        </div>
+      </form>
+      <div id="messages"></div>
+    </main>
+    <script>
+      const form = document.getElementById('chat-form');
+      const composer = document.getElementById('composer');
+      const attach = document.getElementById('attach');
+      const send = document.getElementById('send');
+      const download = document.getElementById('download');
+      const messages = document.getElementById('messages');
+
+      function ensureUploadInput() {
+        let input = document.querySelector('input[type="file"]');
+        if (input) return input;
+        input = document.createElement('input');
+        input.type = 'file';
+        input.id = 'upload';
+        input.style.display = 'none';
+        form.appendChild(input);
+        return input;
+      }
+
+      function refresh() {
+        send.disabled = composer.value.trim().length === 0;
+      }
+
+      function submitFixture(event) {
+        event.preventDefault();
+        const upload = document.querySelector('input[type="file"]');
+        const files = Array.from((upload && upload.files) || []).map((file) => file.name);
+        const prompt = composer.value.trim();
+        messages.innerHTML = '';
+        const assistant = document.createElement('div');
+        assistant.dataset.role = 'assistant';
+        assistant.textContent = `artifact ready | prompt=${prompt} | files=${files.join(',') || 'none'}`;
+        messages.appendChild(assistant);
+        download.hidden = false;
+        composer.value = '';
+        composer.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      attach.addEventListener('click', () => {
+        ensureUploadInput();
+      });
+      composer.addEventListener('input', refresh);
+      composer.addEventListener('change', refresh);
+      form.addEventListener('submit', submitFixture);
+      setInterval(refresh, 100);
+      refresh();
+    </script>
+  </body>
+</html>

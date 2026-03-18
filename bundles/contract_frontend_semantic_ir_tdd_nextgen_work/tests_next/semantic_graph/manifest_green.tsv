@@ -1,0 +1,2 @@
+case_id	notes
+ng03	acyclic refinement with declared parent and child should pass green

@@ -1,0 +1,4 @@
+case	expected	selected	pass
+env	env	env	YES
+vendor	vendor	vendor	YES
+path	path	path	YES

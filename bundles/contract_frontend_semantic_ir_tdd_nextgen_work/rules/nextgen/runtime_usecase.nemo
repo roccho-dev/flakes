@@ -1,0 +1,27 @@
+@import Target :- tsv { resource = "Target.tsv" } .
+@import UseCase :- tsv { resource = "UseCase.tsv" } .
+@import UseCaseForTarget :- tsv { resource = "UseCaseForTarget.tsv" } .
+@import RuntimeObligation :- tsv { resource = "RuntimeObligation.tsv" } .
+@import LatencyBudget :- tsv { resource = "LatencyBudget.tsv" } .
+@import CostBudget :- tsv { resource = "CostBudget.tsv" } .
+@import AuthzContract :- tsv { resource = "AuthzContract.tsv" } .
+@import ProductionTraceBinding :- tsv { resource = "ProductionTraceBinding.tsv" } .
+
+Violation(runtime_target_missing_usecase_link, ?t, ?t) :- Target(?t), ~UseCaseForTarget(_, ?t).
+Violation(runtime_usecase_link_missing_usecase, ?u, ?t) :- UseCaseForTarget(?u, ?t), ~UseCase(?u).
+Violation(runtime_usecase_link_missing_target, ?u, ?t) :- UseCaseForTarget(?u, ?t), ~Target(?t).
+Violation(runtime_usecase_missing_runtime_obligation, ?u, ?u) :- UseCase(?u), ~RuntimeObligation(?u, _).
+Violation(runtime_usecase_missing_latency_budget, ?u, ?u) :- UseCase(?u), ~LatencyBudget(?u, _).
+Violation(runtime_usecase_missing_cost_budget, ?u, ?u) :- UseCase(?u), ~CostBudget(?u, _).
+Violation(runtime_usecase_missing_authz_contract, ?u, ?u) :- UseCase(?u), ~AuthzContract(?u, _).
+Violation(runtime_usecase_missing_production_trace_binding, ?u, ?u) :- UseCase(?u), ~ProductionTraceBinding(?u, _).
+
+UseCaseViolation(?u) :- Violation(_, ?u, _).
+TargetViolation(?t) :- Violation(_, ?t, _).
+TargetViolation(?t) :- UseCaseForTarget(?u, ?t), UseCaseViolation(?u).
+
+Achieved(?u) :- UseCase(?u), ~UseCaseViolation(?u).
+Achieved(?t) :- Target(?t), ~TargetViolation(?t).
+
+@export Violation :- csv { resource = "Violation.csv" } .
+@export Achieved :- csv { resource = "Achieved.csv" } .

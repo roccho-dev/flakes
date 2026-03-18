@@ -1,0 +1,2 @@
+case_id	notes
+ir01	import-dir should materialize empty B.tsv and still export Ok
