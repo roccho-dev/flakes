@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "playbook": {
-    "path": "hq.zig/docs/chatgpt_playbook.md"
+    "path": "parts/hq.zig/docs/chatgpt_playbook.md"
   },
   "model_confirmation": {
     "required": true,

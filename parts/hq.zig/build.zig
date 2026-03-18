@@ -114,9 +114,9 @@ fn resolveCdpRoot(b: *std.Build) []const u8 {
     }
 
     const candidates = [_][]const u8{
-        "../chromedevtoolprotocol.zig/src/root.zig",
-        "../cdp/chromedevtoolprotocol.zig/src/root.zig",
+        "../../chromedevtoolprotocol.zig/src/root.zig",
         "../../cdp/chromedevtoolprotocol.zig/src/root.zig",
+        "../../../cdp/chromedevtoolprotocol.zig/src/root.zig",
     };
 
     for (candidates) |candidate| {
