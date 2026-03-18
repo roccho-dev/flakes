@@ -10,7 +10,7 @@
 //
 // Example
 //   nix shell .#chromium-cdp-tools
-//   qjs --std -m parts/chromedevtoolprotocol/chromium-cdp.project-sources-collect-files.mjs \
+//   qjs --std -m parts/cdp/chromium-cdp.project-sources-collect-files.mjs \
 //     --projectUrl "https://chatgpt.com/g/g-p-<project>/project" \
 //     --needle "SOURCE_ID: worktree-foo-001" \
 //     --outDir /tmp/hq_sources_collect \

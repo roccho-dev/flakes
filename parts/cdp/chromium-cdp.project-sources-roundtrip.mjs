@@ -11,7 +11,7 @@
 // Example
 //   nix shell .#chromium-cdp-tools
 //   export HQ_CHROME_ADDR=127.0.0.1 HQ_CHROME_PORT=9222
-//   qjs --std -m parts/chromedevtoolprotocol/chromium-cdp.project-sources-roundtrip.mjs \
+//   qjs --std -m parts/cdp/chromium-cdp.project-sources-roundtrip.mjs \
 //     --projectUrl "https://chatgpt.com/g/g-p-<project>/project" \
 //     --threadUrl  "https://chatgpt.com/g/g-p-<project>/c/<thread>" \
 //     --file /home/nixos/tmp/hq_project_cross_thread_probe.txt \

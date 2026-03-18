@@ -2,7 +2,10 @@
 
 Single-binary Zig replacement for the non-E2E HQ path.
 
-This app lives under `parts/hq.zig` and depends on the `chromedevtoolprotocol.zig` module repository.
+This app lives under `parts/hq.zig` and depends on the `chromedevtoolprotocol.zig` Zig module.
+
+The repo-local CDP helpers and Nix glue live under `parts/cdp`; those are support
+tools around the dependency, not the dependency itself.
 
 ## Module layout
 

@@ -6,7 +6,7 @@
     ./local/default.nix
     ./qjs.zig/default.nix
     ./os/default.nix
-    ./chromedevtoolprotocol/default.nix
+    ./cdp/default.nix
     ./user/default.nix
   ];
 }

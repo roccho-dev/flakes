@@ -30,7 +30,7 @@
 //   nix shell .#chromium-cdp-tools
 //   chromium-cdp "https://chatgpt.com" &
 //   export HQ_CHROME_ADDR=127.0.0.1 HQ_CHROME_PORT=9222
-//   qjs --std -m parts/chromedevtoolprotocol/chromium-cdp.read-thread.mjs \
+//   qjs --std -m parts/cdp/chromium-cdp.read-thread.mjs \
 //     --url "https://chatgpt.com/c/<thread>" --tail 30 --waitMs 8000
 
 import {

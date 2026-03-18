@@ -11,7 +11,7 @@
 //
 // Example
 //   nix shell .#chromium-cdp-tools
-//   qjs --std -m parts/chromedevtoolprotocol/chromium-cdp.project-sources-promote-turn.mjs \
+//   qjs --std -m parts/cdp/chromium-cdp.project-sources-promote-turn.mjs \
 //     --url "https://chatgpt.com/g/g-p-<project>/c/<thread>" \
 //     --needle "SOURCE_ID: worktree-foo-001" \
 //     --port 9223

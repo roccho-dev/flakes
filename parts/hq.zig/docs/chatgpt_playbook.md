@@ -16,13 +16,13 @@ merged into the repo with minimal human intervention.
 - Zig CLI: `hq` (operator-facing, durable state owner)
   - Runs: status/send/collect + later ui read/get
 - QJS helper (debug + status table):
-  - `parts/chromedevtoolprotocol/chromium-cdp.hq-threads.mjs`
+  - `parts/cdp/chromium-cdp.hq-threads.mjs`
 
 ## Always-Run Workflow (Operator)
 
 1) Print the thread table (copy into your report)
 
-   - `qjs --std -m parts/chromedevtoolprotocol/chromium-cdp.hq-threads.mjs --statusOnly --requireDomPro`
+   - `qjs --std -m parts/cdp/chromium-cdp.hq-threads.mjs --statusOnly --requireDomPro`
    - If it prints `MODEL_CONFIRMATION_WARN` or `DOM_MODEL_WARN`, do not proceed.
      Fix the worker thread (active model must be Pro) and ask workers to repost.
 

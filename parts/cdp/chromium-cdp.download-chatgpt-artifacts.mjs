@@ -16,7 +16,7 @@
 //   chromium-cdp "https://chatgpt.com" &
 //   # Login manually and open the target thread URL in that browser.
 //   export HQ_CHROME_ADDR=127.0.0.1 HQ_CHROME_PORT=9222
-//   qjs --std -m parts/chromedevtoolprotocol/chromium-cdp.download-chatgpt-artifacts.mjs \
+//   qjs --std -m parts/cdp/chromium-cdp.download-chatgpt-artifacts.mjs \
 //     --url "https://chatgpt.com/c/<thread>" \
 //     --outDir /tmp/artifacts \
 //     --name qjs_orchestrator_project.zip \
