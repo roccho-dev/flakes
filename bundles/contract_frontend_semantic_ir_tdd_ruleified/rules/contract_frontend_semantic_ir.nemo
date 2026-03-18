@@ -1,0 +1,171 @@
+@import Target :- tsv { resource = "Target.tsv" } .
+@import WholeSystemTarget :- tsv { resource = "WholeSystemTarget.tsv" } .
+@import Clause :- tsv { resource = "Clause.tsv" } .
+@import ClauseFor :- tsv { resource = "ClauseFor.tsv" } .
+@import ClauseRole :- tsv { resource = "ClauseRole.tsv" } .
+@import SourceRole :- tsv { resource = "SourceRole.tsv" } .
+@import CompiledAsFact :- tsv { resource = "CompiledAsFact.tsv" } .
+@import GuardrailRequired :- tsv { resource = "GuardrailRequired.tsv" } .
+@import GoalEventSource :- tsv { resource = "GoalEventSource.tsv" } .
+@import TargetPopulation :- tsv { resource = "TargetPopulation.tsv" } .
+@import EventAnchor :- tsv { resource = "EventAnchor.tsv" } .
+@import ClockSource :- tsv { resource = "ClockSource.tsv" } .
+@import ObservationWindow :- tsv { resource = "ObservationWindow.tsv" } .
+@import SuccessMetricIdentity :- tsv { resource = "SuccessMetricIdentity.tsv" } .
+@import GuardrailIdentity :- tsv { resource = "GuardrailIdentity.tsv" } .
+@import FrontendQuantifiedClause :- tsv { resource = "FrontendQuantifiedClause.tsv" } .
+@import EventMetricClause :- tsv { resource = "EventMetricClause.tsv" } .
+@import FrontendCrossEntityClause :- tsv { resource = "FrontendCrossEntityClause.tsv" } .
+@import FrontendAggregatedClause :- tsv { resource = "FrontendAggregatedClause.tsv" } .
+@import FrontendMeasurementClause :- tsv { resource = "FrontendMeasurementClause.tsv" } .
+@import FrontendCompiledClause :- tsv { resource = "FrontendCompiledClause.tsv" } .
+@import FrontendApproximation :- tsv { resource = "FrontendApproximation.tsv" } .
+@import QuantifierKind :- tsv { resource = "QuantifierKind.tsv" } .
+@import QuantifierDomain :- tsv { resource = "QuantifierDomain.tsv" } .
+@import JoinKey :- tsv { resource = "JoinKey.tsv" } .
+@import AggregationSubject :- tsv { resource = "AggregationSubject.tsv" } .
+@import GroupingKey :- tsv { resource = "GroupingKey.tsv" } .
+@import UnknownNullPolicy :- tsv { resource = "UnknownNullPolicy.tsv" } .
+@import WorldPolicy :- tsv { resource = "WorldPolicy.tsv" } .
+@import MeasurementSource :- tsv { resource = "MeasurementSource.tsv" } .
+@import CompileTrace :- tsv { resource = "CompileTrace.tsv" } .
+@import CompileLoss :- tsv { resource = "CompileLoss.tsv" } .
+@import SetClause :- tsv { resource = "SetClause.tsv" } .
+@import AggregatedClause :- tsv { resource = "AggregatedClause.tsv" } .
+@import TemporalSetClause :- tsv { resource = "TemporalSetClause.tsv" } .
+@import SetWindow :- tsv { resource = "SetWindow.tsv" } .
+@import ClockBinding :- tsv { resource = "ClockBinding.tsv" } .
+@import ClauseBackend :- tsv { resource = "ClauseBackend.tsv" } .
+@import ClauseLoweringMode :- tsv { resource = "ClauseLoweringMode.tsv" } .
+@import ClauseFeature :- tsv { resource = "ClauseFeature.tsv" } .
+@import BackendCapability :- tsv { resource = "BackendCapability.tsv" } .
+@import SingleInstanceOnlyBackend :- tsv { resource = "SingleInstanceOnlyBackend.tsv" } .
+@import EquivalenceBasis :- tsv { resource = "EquivalenceBasis.tsv" } .
+@import ExactnessAnchor :- tsv { resource = "ExactnessAnchor.tsv" } .
+@import SoundnessDirection :- tsv { resource = "SoundnessDirection.tsv" } .
+@import BackendGrammarLeak :- tsv { resource = "BackendGrammarLeak.tsv" } .
+@import ClauseArtifact :- tsv { resource = "ClauseArtifact.tsv" } .
+@import ClauseWitnessObligation :- tsv { resource = "ClauseWitnessObligation.tsv" } .
+@import ArtifactCover :- tsv { resource = "ArtifactCover.tsv" } .
+@import LoweringTrace :- tsv { resource = "LoweringTrace.tsv" } .
+@import RootSoundnessPolicy :- tsv { resource = "RootSoundnessPolicy.tsv" } .
+@import DecomposedBeforeLowering :- tsv { resource = "DecomposedBeforeLowering.tsv" } .
+@import NecessityClaim :- tsv { resource = "NecessityClaim.tsv" } .
+@import SufficiencyClaim :- tsv { resource = "SufficiencyClaim.tsv" } .
+@import CompletenessClaim :- tsv { resource = "CompletenessClaim.tsv" } .
+@import AssumptionClaim :- tsv { resource = "AssumptionClaim.tsv" } .
+@import HiddenDependency :- tsv { resource = "HiddenDependency.tsv" } .
+@import HiddenDependencyDeclared :- tsv { resource = "HiddenDependencyDeclared.tsv" } .
+@import TradeoffGoal :- tsv { resource = "TradeoffGoal.tsv" } .
+@import ConflictClause :- tsv { resource = "ConflictClause.tsv" } .
+@import ApproximationClaim :- tsv { resource = "ApproximationClaim.tsv" } .
+@import ProofAnchor :- tsv { resource = "ProofAnchor.tsv" } .
+@import ExactOnlyClause :- tsv { resource = "ExactOnlyClause.tsv" } .
+@import ProofBackendTarget :- tsv { resource = "ProofBackendTarget.tsv" } .
+@import AdequacyObligation :- tsv { resource = "AdequacyObligation.tsv" } .
+@import UseCase :- tsv { resource = "UseCase.tsv" } .
+@import UseCaseForTarget :- tsv { resource = "UseCaseForTarget.tsv" } .
+@import NeedsTimeoutTest :- tsv { resource = "NeedsTimeoutTest.tsv" } .
+@import NeedsRetryTest :- tsv { resource = "NeedsRetryTest.tsv" } .
+@import NeedsDuplicateEventTest :- tsv { resource = "NeedsDuplicateEventTest.tsv" } .
+@import NeedsReorderTest :- tsv { resource = "NeedsReorderTest.tsv" } .
+@import NeedsStalenessTest :- tsv { resource = "NeedsStalenessTest.tsv" } .
+@import NeedsCounterexampleReplay :- tsv { resource = "NeedsCounterexampleReplay.tsv" } .
+@import RuntimeObligation :- tsv { resource = "RuntimeObligation.tsv" } .
+@import NeedsLatencyBudget :- tsv { resource = "NeedsLatencyBudget.tsv" } .
+@import NeedsCostBudget :- tsv { resource = "NeedsCostBudget.tsv" } .
+@import NeedsAuthzContract :- tsv { resource = "NeedsAuthzContract.tsv" } .
+@import NeedsProductionTraceBinding :- tsv { resource = "NeedsProductionTraceBinding.tsv" } .
+@import LatencyBudget :- tsv { resource = "LatencyBudget.tsv" } .
+@import CostBudget :- tsv { resource = "CostBudget.tsv" } .
+@import AuthzContract :- tsv { resource = "AuthzContract.tsv" } .
+@import ProductionTraceBinding :- tsv { resource = "ProductionTraceBinding.tsv" } .
+
+TargetClause(?t, ?c) :- Target(?t), ClauseFor(?t, ?c).
+BackendDeclared(?b) :- BackendCapability(?b, _, _).
+BackendExact(?b, ?f) :- BackendCapability(?b, ?f, exact).
+LoweredClauseIntent(?c) :- ClauseBackend(?c, _).
+LoweredClauseIntent(?c) :- ClauseLoweringMode(?c, _).
+LoweredClauseIntent(?c) :- ClauseFeature(?c, _).
+LoweredClauseIntent(?c) :- ClauseArtifact(?c, _).
+LoweredClauseIntent(?c) :- ArtifactCover(_, ?c).
+LoweredClauseIntent(?c) :- LoweringTrace(_, ?c).
+MixedBackendTarget(?t) :- TargetClause(?t, ?c1), TargetClause(?t, ?c2), ClauseBackend(?c1, ?b1), ClauseBackend(?c2, ?b2), ?c1 != ?c2, ?b1 != ?b2.
+HasExactnessAnchor(?c) :- ExactnessAnchor(?c, _).
+HasExactnessAnchor(?c) :- ProofBackendTarget(?c, _).
+HasExactnessAnchor(?c) :- EquivalenceBasis(?c, _).
+
+Violation(frontend_root_missing_population_definition, ?t, ?t) :- Target(?t), ~TargetPopulation(?t, _).
+Violation(frontend_root_missing_event_anchor, ?t, ?t) :- Target(?t), ~EventAnchor(?t, _).
+Violation(frontend_root_missing_clock_source, ?t, ?t) :- Target(?t), ~ClockSource(?t, _).
+Violation(frontend_root_missing_observation_window, ?t, ?t) :- Target(?t), ~ObservationWindow(?t, _).
+Violation(frontend_root_missing_success_metric_identity, ?t, ?t) :- Target(?t), ~SuccessMetricIdentity(?t, _).
+Violation(frontend_root_missing_guardrail_identity, ?t, ?t) :- Target(?t), GuardrailRequired(?t), ~GuardrailIdentity(?t, _).
+Violation(frontend_objective_guardrail_collision, ?t, ?c) :- TargetClause(?t, ?c), ClauseRole(?c, objective), ClauseRole(?c, constraint).
+Violation(frontend_assumption_compiled_as_fact, ?t, ?c) :- TargetClause(?t, ?c), SourceRole(?c, assumption), CompiledAsFact(?c).
+Violation(frontend_constraint_compiled_as_objective, ?t, ?c) :- TargetClause(?t, ?c), SourceRole(?c, constraint), ClauseRole(?c, objective).
+Violation(frontend_quantifier_domain_missing, ?t, ?c) :- TargetClause(?t, ?c), FrontendQuantifiedClause(?c), QuantifierKind(?c, _), ~QuantifierDomain(?c, _).
+Violation(frontend_event_identity_missing, ?t, ?c) :- TargetClause(?t, ?c), EventMetricClause(?c), ~EventAnchor(?c, _).
+Violation(frontend_join_key_missing, ?t, ?c) :- TargetClause(?t, ?c), FrontendCrossEntityClause(?c), ~JoinKey(?c, _).
+Violation(frontend_aggregation_subject_ambiguous, ?t, ?c) :- TargetClause(?t, ?c), FrontendAggregatedClause(?c), ~AggregationSubject(?c, _).
+Violation(frontend_unknown_null_policy_missing, ?t, ?c) :- TargetClause(?t, ?c), FrontendMeasurementClause(?c), ~UnknownNullPolicy(?c, _).
+Violation(frontend_closed_world_policy_missing, ?t, ?t) :- Target(?t), ~WorldPolicy(?t, _).
+Violation(frontend_measurement_source_missing, ?t, ?c) :- TargetClause(?t, ?c), FrontendMeasurementClause(?c), ~MeasurementSource(?c, _).
+Violation(frontend_compile_trace_missing, ?t, ?c) :- TargetClause(?t, ?c), FrontendCompiledClause(?c), ~CompileTrace(?c, _).
+Violation(frontend_compile_loss_unmarked, ?t, ?c) :- TargetClause(?t, ?c), FrontendApproximation(?c), ~CompileLoss(?c, _).
+
+Violation(set_clause_missing_quantifier_kind, ?t, ?c) :- TargetClause(?t, ?c), SetClause(?c), ~QuantifierKind(?c, _).
+Violation(set_clause_missing_domain_scope, ?t, ?c) :- TargetClause(?t, ?c), SetClause(?c), QuantifierKind(?c, _), ~QuantifierDomain(?c, _).
+Violation(set_clause_missing_grouping_key_when_aggregated, ?t, ?c) :- TargetClause(?t, ?c), AggregatedClause(?c), ~GroupingKey(?c, _).
+Violation(set_clause_missing_clock_binding, ?t, ?c) :- TargetClause(?t, ?c), TemporalSetClause(?c), ~ClockBinding(?c, _).
+Violation(set_clause_conflicting_window_semantics, ?t, ?c) :- TargetClause(?t, ?c), SetWindow(?c, ?w1), SetWindow(?c, ?w2), ?w1 != ?w2.
+Violation(lowered_clause_missing_backend_identity, ?t, ?c) :- Target(?t), ~WholeSystemTarget(?t), TargetClause(?t, ?c), LoweredClauseIntent(?c), ~ClauseBackend(?c, _).
+Violation(lowered_clause_missing_lowering_mode, ?t, ?c) :- Target(?t), ~WholeSystemTarget(?t), TargetClause(?t, ?c), LoweredClauseIntent(?c), ~ClauseLoweringMode(?c, _).
+Violation(lowered_clause_missing_feature_declaration, ?t, ?c) :- Target(?t), ~WholeSystemTarget(?t), TargetClause(?t, ?c), LoweredClauseIntent(?c), ~ClauseFeature(?c, _).
+Violation(lowered_clause_missing_artifact_identity, ?t, ?c) :- Target(?t), ~WholeSystemTarget(?t), TargetClause(?t, ?c), LoweredClauseIntent(?c), ~ClauseArtifact(?c, _).
+Violation(backend_capability_missing, ?t, ?b) :- TargetClause(?t, ?c), ClauseBackend(?c, ?b), ~BackendDeclared(?b).
+Violation(backend_capability_mismatch, ?t, ?c) :- TargetClause(?t, ?c), ClauseLoweringMode(?c, exact), ClauseBackend(?c, ?b), BackendDeclared(?b), ClauseFeature(?c, ?f), ~BackendExact(?b, ?f).
+Violation(exact_lowering_without_equivalence_basis, ?t, ?c) :- TargetClause(?t, ?c), ClauseLoweringMode(?c, exact), ~EquivalenceBasis(?c, _).
+Violation(approximate_lowering_without_soundness_direction, ?t, ?c) :- TargetClause(?t, ?c), ClauseLoweringMode(?c, approximate), ~SoundnessDirection(?c, _).
+Violation(backend_specific_grammar_leaked_to_canonical_ir, ?t, ?c) :- TargetClause(?t, ?c), BackendGrammarLeak(?c, _).
+Violation(single_instance_backend_claims_dataset_semantics, ?t, ?c) :- TargetClause(?t, ?c), ClauseBackend(?c, ?b), SingleInstanceOnlyBackend(?b), ClauseFeature(?c, dataset), ~DecomposedBeforeLowering(?c).
+Violation(artifact_cover_missing_for_lowered_clause, ?t, ?c) :- TargetClause(?t, ?c), ClauseArtifact(?c, ?a), ~ArtifactCover(?a, ?c).
+Violation(artifact_identity_conflict, ?t, ?c) :- TargetClause(?t, ?c), ClauseArtifact(?c, ?a1), ClauseArtifact(?c, ?a2), ?a1 != ?a2.
+Violation(lowering_trace_missing_source_clause, ?t, ?c) :- TargetClause(?t, ?c), ClauseArtifact(?c, ?a), ArtifactCover(?a, ?c), ~LoweringTrace(?a, ?c).
+Violation(mixed_backend_root_missing_soundness_policy, ?t, ?t) :- Target(?t), MixedBackendTarget(?t), ~RootSoundnessPolicy(?t, _).
+
+Violation(necessity_claim_missing_ablation_case, ?t, ?claim) :- NecessityClaim(?claim, ?t, _), ~AdequacyObligation(?claim, ablation_case).
+Violation(sufficiency_claim_missing_counterexample_case, ?t, ?claim) :- SufficiencyClaim(?claim, ?t, _), ~AdequacyObligation(?claim, counterexample_case).
+Violation(complete_or_branch_missing_gap_scan, ?t, ?claim) :- CompletenessClaim(?claim, ?t), ~AdequacyObligation(?claim, gap_scan).
+Violation(assumption_missing_break_case, ?t, ?claim) :- AssumptionClaim(?claim, ?t), ~AdequacyObligation(?claim, break_case).
+Violation(hidden_dependency_missing_declaration, ?t, ?dep) :- HiddenDependency(?t, ?dep), ~HiddenDependencyDeclared(?t, ?dep).
+Violation(tradeoff_goal_missing_conflict_clause, ?t, ?t) :- TradeoffGoal(?t, _, _), ~ConflictClause(?t, _).
+Violation(approximation_claim_missing_proof_anchor, ?t, ?claim) :- ApproximationClaim(?claim, ?t), ~ProofAnchor(?claim, _).
+Violation(exact_only_clause_missing_exactness_anchor, ?t, ?c) :- TargetClause(?t, ?c), ExactOnlyClause(?c), ~HasExactnessAnchor(?c).
+
+Violation(whole_system_target_missing_goal_event_source, ?t, ?t) :- WholeSystemTarget(?t), ~GoalEventSource(?t, _).
+Violation(whole_system_target_missing_usecase_link, ?t, ?t) :- WholeSystemTarget(?t), ~UseCaseForTarget(_, ?t).
+Violation(whole_system_exact_clause_missing_witness_obligation, ?t, ?c) :- WholeSystemTarget(?t), TargetClause(?t, ?c), ClauseLoweringMode(?c, exact), ClauseArtifact(?c, _), ~ClauseWitnessObligation(?c, _).
+Violation(whole_system_lowered_clause_missing_artifact_identity, ?t, ?c) :- WholeSystemTarget(?t), TargetClause(?t, ?c), LoweredClauseIntent(?c), ~ClauseArtifact(?c, _).
+
+Violation(runtime_timeout_test_missing, ?u, ?u) :- UseCase(?u), NeedsTimeoutTest(?u), ~RuntimeObligation(?u, timeout).
+Violation(runtime_retry_test_missing, ?u, ?u) :- UseCase(?u), NeedsRetryTest(?u), ~RuntimeObligation(?u, retry).
+Violation(runtime_duplicate_event_test_missing, ?u, ?u) :- UseCase(?u), NeedsDuplicateEventTest(?u), ~RuntimeObligation(?u, duplicate_event).
+Violation(runtime_reorder_test_missing, ?u, ?u) :- UseCase(?u), NeedsReorderTest(?u), ~RuntimeObligation(?u, reorder).
+Violation(runtime_staleness_test_missing, ?u, ?u) :- UseCase(?u), NeedsStalenessTest(?u), ~RuntimeObligation(?u, staleness).
+Violation(runtime_counterexample_replay_missing, ?u, ?u) :- UseCase(?u), NeedsCounterexampleReplay(?u), ~RuntimeObligation(?u, counterexample_replay).
+Violation(usecase_latency_budget_missing, ?u, ?u) :- UseCase(?u), NeedsLatencyBudget(?u), ~LatencyBudget(?u, _).
+Violation(usecase_cost_budget_missing, ?u, ?u) :- UseCase(?u), NeedsCostBudget(?u), ~CostBudget(?u, _).
+Violation(usecase_authz_contract_missing, ?u, ?u) :- UseCase(?u), NeedsAuthzContract(?u), ~AuthzContract(?u, _).
+Violation(production_trace_binding_missing, ?u, ?u) :- UseCase(?u), NeedsProductionTraceBinding(?u), ~ProductionTraceBinding(?u, _).
+
+RootEntity(?x) :- Target(?x).
+RootEntity(?x) :- UseCase(?x).
+HasViolation(?x) :- Violation(_, ?x, _).
+BadLinkedUseCase(?t) :- WholeSystemTarget(?t), UseCaseForTarget(?u, ?t), HasViolation(?u).
+Achieved(?u) :- UseCase(?u), ~HasViolation(?u).
+Achieved(?t) :- Target(?t), ~WholeSystemTarget(?t), ~HasViolation(?t).
+Achieved(?t) :- WholeSystemTarget(?t), ~HasViolation(?t), ~BadLinkedUseCase(?t).
+
+@export Violation :- csv { resource = "Violation.csv" } .
+@export Achieved :- csv { resource = "Achieved.csv" } .

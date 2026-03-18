@@ -1,0 +1,6 @@
+suite	<BUNDLE_ROOT>/tests/infra_import
+kind	green
+rule	<BUNDLE_ROOT>/rules/probe_import.nemo
+total	1
+pass	1
+fail	0

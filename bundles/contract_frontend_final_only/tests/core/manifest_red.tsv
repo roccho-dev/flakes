@@ -1,0 +1,5 @@
+case_id	description
+sc01	missing event anchor should fail
+sc02	refines to missing parent should fail
+sc03	dependency to missing target should fail
+sc04	exact target without evidence obligation should fail

@@ -1,0 +1,76 @@
+<!doctype html>
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>contract_frontend_semantic_ir_tdd architecture</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f7; color: #222; }
+.wrap { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px; padding: 16px; max-width: 1280px; margin: auto; }
+svg { width: 100%; height: auto; background: white; border: 1px solid #ddd; border-radius: 12px; }
+.panel { background: white; border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
+button { margin: 0 8px 8px 0; padding: 8px 12px; border-radius: 999px; border: 1px solid #bbb; background: white; cursor: pointer; }
+button.active { background: #222; color: white; }
+@media (max-width: 900px){ .wrap { grid-template-columns: 1fr; } }
+</style></head><body>
+<div class='wrap'>
+  <div>
+    <svg viewBox='0 0 1100 680'>
+      <rect id='goal' x='40' y='80' rx='16' ry='16' width='220' height='100' fill='#ffffff' stroke='#444' stroke-width='2'/>
+      <text x='150' y='120' text-anchor='middle' font-size='22'>Goal / Event FE</text>
+      <text x='150' y='150' text-anchor='middle' font-size='14'>population · event · clock</text>
+      <rect id='semantic' x='320' y='80' rx='16' ry='16' width='220' height='100' fill='#ffffff' stroke='#444' stroke-width='2'/>
+      <text x='430' y='120' text-anchor='middle' font-size='22'>Semantic Contract IR</text>
+      <text x='430' y='150' text-anchor='middle' font-size='14'>roles · null/world policy · trace</text>
+      <rect id='set' x='600' y='80' rx='16' ry='16' width='220' height='100' fill='#ffffff' stroke='#444' stroke-width='2'/>
+      <text x='710' y='120' text-anchor='middle' font-size='22'>Lowerable Set IR</text>
+      <text x='710' y='150' text-anchor='middle' font-size='14'>quantifier · grouping · exactness</text>
+      <rect id='datalog' x='840' y='80' rx='16' ry='16' width='220' height='100' fill='#ffffff' stroke='#444' stroke-width='2'/>
+      <text x='950' y='120' text-anchor='middle' font-size='22'>Datalog Verifier</text>
+      <text x='950' y='150' text-anchor='middle' font-size='14'>60 red · 12 green</text>
+      <rect id='backend' x='600' y='270' rx='16' ry='16' width='220' height='100' fill='#ffffff' stroke='#444' stroke-width='2'/>
+      <text x='710' y='310' text-anchor='middle' font-size='22'>Backend Matrix</text>
+      <text x='710' y='340' text-anchor='middle' font-size='14'>jsonschema · cue · sql_check</text>
+      <rect id='runtime' x='840' y='270' rx='16' ry='16' width='220' height='100' fill='#ffffff' stroke='#444' stroke-width='2'/>
+      <text x='950' y='310' text-anchor='middle' font-size='22'>Runtime / Quality</text>
+      <text x='950' y='340' text-anchor='middle' font-size='14'>timeout · retry · latency · cost</text>
+      <line x1='260' y1='130' x2='320' y2='130' stroke='#666' stroke-width='3'/>
+      <line x1='540' y1='130' x2='600' y2='130' stroke='#666' stroke-width='3'/>
+      <line x1='820' y1='130' x2='840' y2='130' stroke='#666' stroke-width='3'/>
+      <line x1='710' y1='180' x2='710' y2='270' stroke='#666' stroke-width='3'/>
+      <line x1='930' y1='180' x2='930' y2='270' stroke='#666' stroke-width='3'/>
+      <text x='150' y='500' text-anchor='middle' font-size='28'>Wave 1</text>
+      <text x='150' y='530' text-anchor='middle' font-size='16'>frontend compile + exactness</text>
+      <text x='500' y='500' text-anchor='middle' font-size='28'>Wave 2</text>
+      <text x='500' y='530' text-anchor='middle' font-size='16'>set semantics + mixed backend</text>
+      <text x='860' y='500' text-anchor='middle' font-size='28'>Wave 3</text>
+      <text x='860' y='530' text-anchor='middle' font-size='16'>adequacy + runtime obligations</text>
+    </svg>
+  </div>
+  <div class='panel'>
+    <h2>contract_frontend_semantic_ir_tdd</h2>
+    <p>Updated to accept exact CUE-style paths without forcing a proof backend target on every exact-only clause.</p>
+    <div>
+      <button data-key='fe'>Frontend</button>
+      <button data-key='ls'>Lowerable set</button>
+      <button data-key='trace'>Whole-system trace</button>
+      <button data-key='sa'>Adequacy</button>
+      <button data-key='rq'>Runtime / quality</button>
+      <button data-key='fix'>Applied fixes</button>
+    </div>
+    <div id='text'></div>
+  </div>
+</div>
+<script>
+const notes = {
+  fe: '<h3>Frontend compile</h3><p>Goal/event input must compile into explicit population, event, clock, window, metric identity, source trace, and loss markers.</p>',
+  ls: '<h3>Lowerable set IR</h3><p>Quantifier, domain, grouping, clock binding, backend capability, exactness anchors, and lowering presence facts are all executable checks.</p>',
+  trace: '<h3>Whole-system trace</h3><p>Targets explicitly marked as <b>WholeSystemTarget</b> must now connect GoalEventSource, UseCaseForTarget, ClauseWitnessObligation, artifacts, and linked use-case achievement as one executable trace.</p>',
+  sa: '<h3>Adequacy</h3><p>Necessity, sufficiency, completeness, hidden dependency, and exactness-anchor obligations are encoded as testable red contracts.</p>',
+  rq: '<h3>Runtime / quality</h3><p>Datalog checks obligation completeness only: timeout, retry, duplicate/reorder, latency, cost, authz, and production trace bindings.</p>',
+  fix: '<h3>Applied fixes</h3><p>sa08 is weakened to <b>exact_only_clause_missing_exactness_anchor</b>. Budget facts are split into <b>LatencyBudget</b>, <b>CostBudget</b>, <b>AuthzContract</b>, and <b>ProductionTraceBinding</b>. Lowered clauses now require <b>ClauseBackend</b>, <b>ClauseLoweringMode</b>, <b>ClauseFeature</b>, and <b>ClauseArtifact</b>. The harness is shell-only again.</p>'
+};
+const text = document.getElementById('text');
+const buttons = [...document.querySelectorAll('button[data-key]')];
+function select(key){ text.innerHTML = notes[key]; buttons.forEach(b => b.classList.toggle('active', b.dataset.key===key)); }
+buttons.forEach(b => b.addEventListener('click', ()=>select(b.dataset.key)));
+select('fix');
+</script>
+</body></html>

@@ -1,0 +1,35 @@
+fact_name	layer	meaning	required_by_cases	notes
+TargetPopulation	semantic_contract_ir	Who or what cohort the contract is about.	fe01 fg01 fg02 fg12	Required before metric truth can be interpreted.
+EventAnchor	semantic_contract_ir	The event kind or state transition being counted or measured.	fe02 fe11 fg01 fg02 fg12	Separates narrative from measurable event identity.
+ClockSource	semantic_contract_ir	Which timestamp defines event time.	fe03 fg01 fg02 fg12	Required for temporal claims.
+ObservationWindow	semantic_contract_ir	The window over which measurement is interpreted.	fe04 fg01 fg02 fg12	Frontend must fix window before lowering.
+SuccessMetricIdentity	semantic_contract_ir	The metric identity optimized by the root objective.	fe05 fg01 fg12	Keeps target intent explicit.
+GuardrailIdentity	semantic_contract_ir	The downside metric that constrains the objective.	fe06 fe07 fg03 fg12	Separates maximize from must-not-violate.
+QuantifierKind	lowerable_set_ir	Universal, existential, threshold, or aggregate semantics.	fe10 ls01 fg02 fg07	Needed to lower set meaning correctly.
+QuantifierDomain	semantic_contract_ir	The domain over which the quantifier ranges.	fe10 ls02 fg02 fg07	Prevents silent domain drift.
+JoinKey	semantic_contract_ir	How cross-entity facts are aligned.	fe12 fg02	Required for cross-source or cross-entity claims.
+GroupingKey	lowerable_set_ir	The grouping dimension for aggregate semantics.	ls03 fg02 fg07	Required when grouping changes truth conditions.
+UnknownNullPolicy	semantic_contract_ir	How unknown or null measurements affect truth.	fe14 fg02	Prevents silent pass/fail drift on sparse data.
+WorldPolicy	semantic_contract_ir	Whether absence of evidence means false, unknown, or not-applicable.	fe15 fg01 fg02 fg12	Makes open/closed-world assumptions explicit.
+MeasurementSource	semantic_contract_ir	The authoritative measurement source for a compiled metric.	fe16 fg01 fg02 fg12	Separates semantics from evidence plumbing.
+CompileTrace	compile_trace	Source span and rationale from goal/event input to compiled clause.	fe17 fg04 fg05 fg12	Needed for explainability and mutation-safe review.
+CompileLoss	compile_trace	Declared narrowing, widening, or approximation introduced by compile.	fe18 fg05	Must exist whenever compile is not lossless.
+BackendCapability	backend_matrix	Machine-readable declaration of what a backend supports exactly or approximately.	ls06 ls07 fg06 fg07 fg08 fg12	Avoids brain-only backend knowledge.
+ClauseBackend	lowering_contract	The backend identity selected for a lowered clause.	ls06 ls16 fg06 fg07 fg08 fg12	Makes backend choice explicit before capability matching.
+ClauseLoweringMode	lowering_contract	Whether the clause lowers as exact or approximate.	ls07 ls09 ls17 tr03 fg06 fg07 fg08 fg12	Prevents silent exactness drift.
+ClauseFeature	lowering_contract	The semantic feature or subset the backend must support for this clause.	ls07 ls11 ls18 fg06 fg07 fg08 fg12	Feeds capability matching with machine-readable needs.
+ClauseArtifact	lowering_contract	The artifact identity that carries the lowered clause.	ls12 ls13 ls14 ls19 tr03 tr05 fg06 fg07 fg08 fg12	Makes artifact trace presence explicit instead of implied.
+EquivalenceBasis	lowering_contract	The reason exact lowering is valid.	ls08 fg06 fg07 fg12	Required before exact can be claimed.
+ExactnessAnchor	adequacy_contract	A machine-readable anchor that justifies why an exact-only clause is acceptable without forcing a proof backend.	sa08 fg09	Resolves the exact CUE leaf objection.
+SoundnessDirection	lowering_contract	Whether approximate lowering is sound_over or sound_under.	ls09 fg05 fg08 fg12	Required for mixed-backend composition.
+ArtifactCover	lowering_contract	Relation from lowered artifact back to the clause it implements.	ls12 ls14 fg06 fg07 fg08 fg12	Maintains trace across lowering.
+AdequacyObligation	adequacy_contract	Counterexample, ablation, or gap-scan obligation attached to a claim.	sa01 sa02 sa03 sa04 sa05 sa06 sa07 fg09	Lets Datalog check that truth obligations are not forgotten.
+RuntimeObligation	runtime_contract	Timeout, retry, duplicate, reorder, staleness, or replay obligation bound to a use case.	rq01 rq02 rq03 rq04 rq05 rq06 fg10 fg12	Separates runtime execution from runtime obligation completeness.
+LatencyBudget	runtime_contract	Latency budget bound to a use case.	rq07 fg11 fg12	Separated from cost and authz.
+CostBudget	runtime_contract	Cost budget bound to a use case.	rq08 fg11 fg12	Separated from latency and authz.
+AuthzContract	runtime_contract	Authorization contract bound to a use case.	rq09 fg11 fg12	Kept distinct from budgets.
+ProductionTraceBinding	runtime_contract	Production trace or replay binding for a use case.	rq10 fg11 fg12	Kept distinct from budgets and authz.
+WholeSystemTarget	verifier_scope	Marks a target whose trace must close from goal/event source through artifact, witness, and linked use case.	tr01 tr02 tr03 tr04 tr05 fg12	Prevents whole-system trace checks from overreaching onto targets that are not meant to close runtime.
+GoalEventSource	frontend_trace	Binds a target back to the goal/event source it was compiled from.	tr01 fg12	Makes the origin of a whole-system contract explicit and executable.
+UseCaseForTarget	system_trace	Links a target to the use case that carries its runtime and quality obligations.	tr02 tr04 fg12	Allows target achievement to depend on linked runtime readiness.
+ClauseWitnessObligation	witness_contract	Declares that a lowered exact clause must produce or consume an artifact-side witness.	tr03 fg12	Keeps exact artifact paths tied to witness obligations instead of prose claims.

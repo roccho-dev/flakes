@@ -1,0 +1,6 @@
+suite	<BUNDLE_ROOT>/tests/audit
+kind	green
+rule	<BUNDLE_ROOT>/rules/provenance_audit.nemo
+total	2
+pass	2
+fail	0

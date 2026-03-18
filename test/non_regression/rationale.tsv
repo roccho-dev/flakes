@@ -1,0 +1,3 @@
+who	why	affected_scope_labels	affected_scope_paths
+opencode	add synthetic nmo resolution probe (env>vendor>PATH)	ALL	meta/
+opencode	add public surface + profile manifests	ALL	meta/

@@ -1,0 +1,46 @@
+term	layer	independent_responsibility	allowed_rule_term	depends_on	must_not_embed	role
+SourceRecord	source	Capture one raw narrative fragment or instruction.	yes	-	Target, DecompositionRun	Atomic source unit.
+SourceContext	source	Attach contextual metadata to a source record.	yes	SourceRecord	Target	Context stays source-side.
+SourceConstraint	source	Capture a constraint stated in source space.	yes	SourceRecord	Target	Not a semantic target by itself.
+SourceObservation	source	Capture an observed fact from source space.	yes	SourceRecord	Target	Source-side observation only.
+SourceEvidenceRef	source	Point to external evidence from source space.	yes	SourceRecord	Target	Reference only.
+DecompositionRun	provenance_strict	Identify one decomposition or reinterpretation execution.	yes	-	Target	Run-scoped origin container.
+OriginSourceRef	provenance_strict	Link a decomposition run to a source-side origin fragment.	yes	DecompositionRun, SourceRecord	Target	Run-global origin member.
+OriginTargetRef	provenance_strict	Link a decomposition run to a strict target used as origin.	yes	DecompositionRun, Target	SourceRecord	Allows strict-to-strict re-entry.
+OriginView	provenance_strict	Record how a run interprets its origin set.	yes	DecompositionRun	Target	objective|constraint|problem|hypothesis|request.
+RunSupersedes	provenance_strict	Link a newer run that revises an older run.	yes	DecompositionRun	Target	Revision branch, not semantic recursion.
+RunEmitsTarget	provenance_strict	Link a run to each frontier target it emitted.	yes	DecompositionRun, Target	SourceRecord	Bridge only.
+Target	semantic_strict	Atomic contract node with measurable responsibility.	yes	-	SourceRecord, DecompositionRun	Only semantic node type.
+TargetPopulation	semantic_strict	State the cohort or scope of a target.	yes	Target	SourceRecord	Semantic truth input.
+EventAnchor	semantic_strict	State the event or state transition measured by a target.	yes	Target	SourceRecord	Semantic truth input.
+ClockSource	semantic_strict	State the time source for a target.	yes	Target	SourceRecord	Semantic truth input.
+ObservationWindow	semantic_strict	State the measurement window for a target.	yes	Target	SourceRecord	Semantic truth input.
+SuccessMetricIdentity	semantic_strict	State the success metric identity for a target.	yes	Target	SourceRecord	Semantic truth input.
+GuardrailIdentity	semantic_strict	State the guardrail metric for a target.	yes	Target	SourceRecord	Semantic truth input.
+Refines	semantic_strict	Relate a more concrete target to a more abstract target.	yes	Target	SourceRecord	Acyclic refinement edge.
+DependsOn	semantic_strict	Relate a target to another target it uses as a condition.	yes	Target	SourceRecord	Graph edge only.
+DependencyMode	semantic_strict	Declare whether a dependency is necessary or sufficient.	yes	DependsOn	Target	Edge annotation only.
+EvidenceObligation	semantic_strict	Declare that a target or exact clause requires evidence production or consumption.	yes	Target	Fixture	Contract, not test data.
+ArtifactIdentity	semantic_strict	Identify the artifact that carries a target or clause implementation.	yes	Target	Fixture	Runtime/artifact bridge.
+UseCase	semantic_strict	Identify a use case bound to runtime obligations.	yes	-	SourceRecord	Runtime-side semantic node.
+UseCaseForTarget	semantic_strict	Bind a target to a use case.	yes	Target, UseCase	SourceRecord	Runtime linkage.
+RuntimeObligation	semantic_strict	State timeout/retry/reorder/etc obligation for a use case.	yes	UseCase	Fixture	Semantic obligation.
+LatencyBudget	semantic_strict	State latency budget for a use case.	yes	UseCase	Fixture	Budget contract.
+CostBudget	semantic_strict	State cost budget for a use case.	yes	UseCase	Fixture	Budget contract.
+AuthzContract	semantic_strict	State authz requirement for a use case.	yes	UseCase	Fixture	Runtime contract.
+ProductionTraceBinding	semantic_strict	Bind a use case to production trace or replay binding.	yes	UseCase	Fixture	Runtime trace contract.
+TestContractSet	test_spec	Group multiple contract clauses that jointly define implementation responsibility.	yes	Target	ImplementationSatisfier	Executable spec bundle.
+ContractSetForTarget	test_spec	Bind one contract-set to one target without embedding either term.	yes	TestContractSet, Target	ImplementationSatisfier	Edge only.
+TestCase	test_spec	One generated or authored executable test derived from contract sets.	yes	TestContractSet	ImplementationSatisfier	Spec artifact, not implementation.
+TestCaseForContractSet	test_spec	Bind one test case to one contract-set without embedding either term.	yes	TestCase, TestContractSet	ImplementationSatisfier	Edge only.
+Fixture	test_spec	Prepared input/state used to execute a test case.	yes	TestCase	EvidenceObligation	Harness artifact only.
+ImplementationSatisfier	implementation	Concrete implementation that satisfies multiple test cases.	yes	TestCase	Target	Never the source of truth.
+ImplementationForTarget	implementation	Bind an implementation satisfier to one target responsibility.	yes	ImplementationSatisfier, Target	TestCase	Assignment edge only.
+SatisfiesTestCase	implementation	Declare that an implementation satisfier satisfies one executable test case.	yes	ImplementationSatisfier, TestCase	Target	Evidence comes from multiple test satisfactions.
+Violation	derived_ir	Derived contract failure verdict.	yes	Target or UseCase	SourceRecord	Derived only.
+Achieved	derived_ir	Derived contract success verdict.	yes	Target	SourceRecord	Derived only.
+SemanticViolation	derived_ir	Derived semantic-only failure verdict separate from provenance/audit.	yes	Target	SourceRecord	Semantic verdict output only.
+SemanticAchieved	derived_ir	Derived semantic-only success verdict separate from provenance/audit.	yes	Target	SourceRecord	Semantic verdict output only.
+AuditViolation	derived_ir	Derived provenance/audit failure verdict without blocking semantic success.	yes	Target	SourceRecord	Audit verdict output only.
+AuditAchieved	derived_ir	Derived provenance/audit success verdict without asserting semantic success.	yes	Target	SourceRecord	Audit verdict output only.
+FocusTarget	runtime_input	Run-time root/focus selector for evaluation.	yes	Target	SourceRecord	Runtime input, not semantic node.

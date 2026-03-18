@@ -1,0 +1,4 @@
+suite	red
+total	1
+pass	1
+fail	0

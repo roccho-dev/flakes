@@ -1,0 +1,6 @@
+gate_id	condition	source	status_rule
+G01	All nextgen suites pass red and green via run_nextgen_all.sh both	results/nextgen_all/summary_both.tsv	all PASS
+G02	Dual verdict suite keeps semantic and audit outputs separate	results/nextgen/whole_system_split/{red,green}	semantic/audit outputs each match expected
+G03	Final vocabulary inventory is frozen	docs/NEXTGEN_FINAL_SPEC.tsv	file exists and migration steps 00-12 are DONE
+G04	Parity matrix exists for old-to-nextgen mapping	docs/NEXTGEN_PARITY_MATRIX.tsv	file exists
+G05	Legacy path is frozen and documented as deprecated for new semantics	docs/DEPRECATION__LEGACY_PATH.md	file exists

@@ -95,6 +95,30 @@ pub fn main() !void {
         return;
     }
 
+    if (std.mem.eql(u8, cmd, "filechooser")) {
+        const ws_url = try parseFlagValue(argv, 2, "--ws") orelse {
+            try die("missing: --ws");
+            return;
+        };
+        const selector = try parseFlagValue(argv, 2, "--selector") orelse {
+            try die("missing: --selector");
+            return;
+        };
+        const file_path = try parseFlagValue(argv, 2, "--file") orelse {
+            try die("missing: --file");
+            return;
+        };
+
+        const timeout_ms_str = try parseFlagValue(argv, 2, "--timeout-ms") orelse "30000";
+        const timeout_ms = std.fmt.parseUnsigned(u32, timeout_ms_str, 10) catch 30000;
+
+        const resp = try wsFileChooser(allocator, ws_url, selector, file_path, timeout_ms);
+        defer allocator.free(resp);
+        const out = std.fs.File.stdout().deprecatedWriter();
+        try out.print("{s}\n", .{resp});
+        return;
+    }
+
     try usage();
 }
 
@@ -108,7 +132,8 @@ fn usage() !void {
             "  cdp-bridge list    [--addr 127.0.0.1] [--port 9222]\n" ++
             "  cdp-bridge new     [--addr 127.0.0.1] [--port 9222] [--url about:blank]\n" ++
             "  cdp-bridge close   [--addr 127.0.0.1] [--port 9222] --id <targetId>\n" ++
-            "  cdp-bridge call    --ws <ws://...> --req <json> [--timeout-ms 30000]\n",
+            "  cdp-bridge call    --ws <ws://...> --req <json> [--timeout-ms 30000]\n" ++
+            "  cdp-bridge filechooser --ws <ws://...> --selector <css> --file <path> [--timeout-ms 30000]\n",
     );
 }
 
@@ -397,6 +422,357 @@ fn wsCall(allocator: std.mem.Allocator, ws_url: []const u8, req_json: []const u8
 
         allocator.free(msg);
     }
+}
+
+fn wsFileChooser(
+    allocator: std.mem.Allocator,
+    ws_url: []const u8,
+    selector: []const u8,
+    file_path: []const u8,
+    timeout_ms: u32,
+) ![]u8 {
+    const parsed_ws = try parseWsUrl(ws_url);
+
+    var bs = BufferedStream{ .stream = try std.net.tcpConnectToHost(allocator, parsed_ws.host, parsed_ws.port) };
+    defer bs.stream.close();
+
+    if (timeout_ms > 0) {
+        try setRecvTimeout(bs.stream, timeout_ms);
+    }
+
+    const sec_key = try genSecWebSocketKey(allocator);
+    defer allocator.free(sec_key);
+    const accept_expected = try computeSecWebSocketAccept(allocator, sec_key);
+    defer allocator.free(accept_expected);
+    try wsHandshake(allocator, &bs, parsed_ws.host, parsed_ws.port, parsed_ws.path, sec_key, accept_expected);
+
+    var next_id: i64 = 1;
+
+    const resp_runtime_enable = try wsSendAndWaitId(allocator, &bs, try buildReqNoParams(allocator, next_id, "Runtime.enable"), next_id);
+    defer allocator.free(resp_runtime_enable);
+    next_id += 1;
+
+    const resp_dom_enable = try wsSendAndWaitId(allocator, &bs, try buildReqNoParams(allocator, next_id, "DOM.enable"), next_id);
+    defer allocator.free(resp_dom_enable);
+    next_id += 1;
+
+    const resp_page_enable = try wsSendAndWaitId(allocator, &bs, try buildReqNoParams(allocator, next_id, "Page.enable"), next_id);
+    defer allocator.free(resp_page_enable);
+    next_id += 1;
+
+    const resp_bring = try wsSendAndWaitId(allocator, &bs, try buildReqNoParams(allocator, next_id, "Page.bringToFront"), next_id);
+    defer allocator.free(resp_bring);
+    next_id += 1;
+
+    const resp_intercept_on = try wsSendAndWaitId(
+        allocator,
+        &bs,
+        try buildReqInterceptFileChooser(allocator, next_id, true, null),
+        next_id,
+    );
+    defer allocator.free(resp_intercept_on);
+    next_id += 1;
+
+    const center_expr = try buildCenterExpr(allocator, selector);
+    defer allocator.free(center_expr);
+    const resp_center = try wsSendAndWaitId(
+        allocator,
+        &bs,
+        try buildReqRuntimeEvaluate(allocator, next_id, center_expr, true, false, false),
+        next_id,
+    );
+    defer allocator.free(resp_center);
+    const pt = try extractPoint(allocator, resp_center);
+    next_id += 1;
+
+    const resp_mouse_move = try wsSendAndWaitId(
+        allocator,
+        &bs,
+        try buildReqMouseEvent(allocator, next_id, "mouseMoved", pt.x, pt.y, null, null),
+        next_id,
+    );
+    defer allocator.free(resp_mouse_move);
+    next_id += 1;
+
+    const resp_mouse_down = try wsSendAndWaitId(
+        allocator,
+        &bs,
+        try buildReqMouseEvent(allocator, next_id, "mousePressed", pt.x, pt.y, "left", 1),
+        next_id,
+    );
+    defer allocator.free(resp_mouse_down);
+    next_id += 1;
+
+    const resp_mouse_up = try wsSendAndWaitId(
+        allocator,
+        &bs,
+        try buildReqMouseEvent(allocator, next_id, "mouseReleased", pt.x, pt.y, "left", 1),
+        next_id,
+    );
+    defer allocator.free(resp_mouse_up);
+    next_id += 1;
+
+    const evt = try wsWaitForMethod(allocator, &bs, "Page.fileChooserOpened");
+    defer allocator.free(evt);
+    const backend_node_id = try extractBackendNodeId(allocator, evt);
+
+    const resp_set_files = try wsSendAndWaitId(
+        allocator,
+        &bs,
+        try buildReqSetFileInputFiles(allocator, next_id, backend_node_id, file_path),
+        next_id,
+    );
+    defer allocator.free(resp_set_files);
+    next_id += 1;
+
+    const resp_intercept_off = try wsSendAndWaitId(
+        allocator,
+        &bs,
+        try buildReqInterceptFileChooser(allocator, next_id, false, null),
+        next_id,
+    );
+    defer allocator.free(resp_intercept_off);
+    next_id += 1;
+
+    const verify_expr = try buildVerifyExpr(allocator, file_path);
+    defer allocator.free(verify_expr);
+    const resp_verify = try wsSendAndWaitId(
+        allocator,
+        &bs,
+        try buildReqRuntimeEvaluate(allocator, next_id, verify_expr, true, false, false),
+        next_id,
+    );
+    defer allocator.free(resp_verify);
+
+    return std.fmt.allocPrint(
+        allocator,
+        "{{\"ok\":true,\"backendNodeId\":{d},\"runtime_enable\":{s},\"dom_enable\":{s},\"page_enable\":{s},\"bring_to_front\":{s},\"intercept_on\":{s},\"center\":{s},\"mouse_move\":{s},\"mouse_down\":{s},\"mouse_up\":{s},\"fileChooserOpened\":{s},\"setFileInputFiles\":{s},\"intercept_off\":{s},\"verify\":{s}}}",
+        .{ backend_node_id, resp_runtime_enable, resp_dom_enable, resp_page_enable, resp_bring, resp_intercept_on, resp_center, resp_mouse_move, resp_mouse_down, resp_mouse_up, evt, resp_set_files, resp_intercept_off, resp_verify },
+    );
+}
+
+fn wsSendAndWaitId(allocator: std.mem.Allocator, bs: *BufferedStream, req_json: []const u8, req_id: i64) ![]u8 {
+    defer allocator.free(req_json);
+    try wsSendText(bs.stream, req_json);
+
+    while (true) {
+        const msg = try wsReadTextMessage(allocator, bs);
+        errdefer allocator.free(msg);
+
+        var parsed = std.json.parseFromSlice(std.json.Value, allocator, msg, .{}) catch {
+            allocator.free(msg);
+            continue;
+        };
+        defer parsed.deinit();
+
+        if (parsed.value != .object) {
+            allocator.free(msg);
+            continue;
+        }
+        if (parsed.value.object.get("id")) |rid| {
+            if (rid == .integer and rid.integer == req_id) {
+                return msg;
+            }
+        }
+
+        allocator.free(msg);
+    }
+}
+
+fn wsWaitForMethod(allocator: std.mem.Allocator, bs: *BufferedStream, method: []const u8) ![]u8 {
+    while (true) {
+        const msg = try wsReadTextMessage(allocator, bs);
+        errdefer allocator.free(msg);
+
+        var parsed = std.json.parseFromSlice(std.json.Value, allocator, msg, .{}) catch {
+            allocator.free(msg);
+            continue;
+        };
+        defer parsed.deinit();
+        if (parsed.value != .object) {
+            allocator.free(msg);
+            continue;
+        }
+
+        if (parsed.value.object.get("method")) |mv| {
+            if (mv == .string and std.mem.eql(u8, mv.string, method)) {
+                return msg;
+            }
+        }
+
+        allocator.free(msg);
+    }
+}
+
+fn extractBackendNodeId(allocator: std.mem.Allocator, msg: []const u8) !i64 {
+    var parsed = try std.json.parseFromSlice(std.json.Value, allocator, msg, .{});
+    defer parsed.deinit();
+    if (parsed.value != .object) return error.InvalidJson;
+    const params = parsed.value.object.get("params") orelse return error.MissingField;
+    if (params != .object) return error.InvalidFieldType;
+    const bn = params.object.get("backendNodeId") orelse return error.MissingField;
+    if (bn != .integer) return error.InvalidFieldType;
+    return bn.integer;
+}
+
+fn buildReqNoParams(allocator: std.mem.Allocator, id: i64, method: []const u8) ![]u8 {
+    const method_json = try jsonStringAlloc(allocator, method);
+    defer allocator.free(method_json);
+    return std.fmt.allocPrint(allocator, "{{\"id\":{d},\"method\":{s},\"params\":{{}}}}", .{ id, method_json });
+}
+
+fn buildReqInterceptFileChooser(allocator: std.mem.Allocator, id: i64, enabled: bool, cancel: ?bool) ![]u8 {
+    const method_json = try jsonStringAlloc(allocator, "Page.setInterceptFileChooserDialog");
+    defer allocator.free(method_json);
+
+    if (cancel) |c| {
+        return std.fmt.allocPrint(
+            allocator,
+            "{{\"id\":{d},\"method\":{s},\"params\":{{\"enabled\":{s},\"cancel\":{s}}}}}",
+            .{ id, method_json, if (enabled) "true" else "false", if (c) "true" else "false" },
+        );
+    }
+
+    return std.fmt.allocPrint(
+        allocator,
+        "{{\"id\":{d},\"method\":{s},\"params\":{{\"enabled\":{s}}}}}",
+        .{ id, method_json, if (enabled) "true" else "false" },
+    );
+}
+
+fn buildReqRuntimeEvaluate(
+    allocator: std.mem.Allocator,
+    id: i64,
+    expression: []const u8,
+    return_by_value: bool,
+    await_promise: bool,
+    user_gesture: bool,
+) ![]u8 {
+    const method_json = try jsonStringAlloc(allocator, "Runtime.evaluate");
+    defer allocator.free(method_json);
+    const expr_json = try jsonStringAlloc(allocator, expression);
+    defer allocator.free(expr_json);
+    return std.fmt.allocPrint(
+        allocator,
+        "{{\"id\":{d},\"method\":{s},\"params\":{{\"expression\":{s},\"returnByValue\":{s},\"awaitPromise\":{s},\"userGesture\":{s}}}}}",
+        .{
+            id,
+            method_json,
+            expr_json,
+            if (return_by_value) "true" else "false",
+            if (await_promise) "true" else "false",
+            if (user_gesture) "true" else "false",
+        },
+    );
+}
+
+fn buildReqSetFileInputFiles(allocator: std.mem.Allocator, id: i64, backend_node_id: i64, file_path: []const u8) ![]u8 {
+    const method_json = try jsonStringAlloc(allocator, "DOM.setFileInputFiles");
+    defer allocator.free(method_json);
+    const file_json = try jsonStringAlloc(allocator, file_path);
+    defer allocator.free(file_json);
+    return std.fmt.allocPrint(
+        allocator,
+        "{{\"id\":{d},\"method\":{s},\"params\":{{\"backendNodeId\":{d},\"files\":[{s}]}}}}",
+        .{ id, method_json, backend_node_id, file_json },
+    );
+}
+
+fn buildCenterExpr(allocator: std.mem.Allocator, selector: []const u8) ![]u8 {
+    const sel_json = try jsonStringAlloc(allocator, selector);
+    defer allocator.free(sel_json);
+    return std.fmt.allocPrint(
+        allocator,
+        "(() => {{ const sel = {s}; const el = document.querySelector(sel); if (!el) return {{ ok: false, reason: 'not_found', selector: sel }}; try {{ el.scrollIntoView({{ block: 'center', inline: 'center' }}); }} catch (_) {{}} const r = el.getBoundingClientRect(); return {{ ok: true, selector: sel, x: r.x + r.width / 2, y: r.y + r.height / 2 }}; }})()",
+        .{sel_json},
+    );
+}
+
+const Point = struct {
+    x: f64,
+    y: f64,
+};
+
+fn extractPoint(allocator: std.mem.Allocator, msg: []const u8) !Point {
+    var parsed = try std.json.parseFromSlice(std.json.Value, allocator, msg, .{});
+    defer parsed.deinit();
+    if (parsed.value != .object) return error.InvalidJson;
+
+    const result0 = parsed.value.object.get("result") orelse return error.MissingField;
+    if (result0 != .object) return error.InvalidFieldType;
+    const result1 = result0.object.get("result") orelse return error.MissingField;
+    if (result1 != .object) return error.InvalidFieldType;
+    const value = result1.object.get("value") orelse return error.MissingField;
+    if (value != .object) return error.InvalidFieldType;
+
+    const okv = value.object.get("ok") orelse return error.MissingField;
+    if (okv != .bool) return error.InvalidFieldType;
+    if (!okv.bool) return error.NotFound;
+
+    const xv = value.object.get("x") orelse return error.MissingField;
+    const yv = value.object.get("y") orelse return error.MissingField;
+    const x: f64 = switch (xv) {
+        .float => |f| f,
+        .integer => |i| @floatFromInt(i),
+        else => return error.InvalidFieldType,
+    };
+    const y: f64 = switch (yv) {
+        .float => |f| f,
+        .integer => |i| @floatFromInt(i),
+        else => return error.InvalidFieldType,
+    };
+
+    return .{ .x = x, .y = y };
+}
+
+fn buildReqMouseEvent(
+    allocator: std.mem.Allocator,
+    id: i64,
+    event_type: []const u8,
+    x: f64,
+    y: f64,
+    button: ?[]const u8,
+    click_count: ?i64,
+) ![]u8 {
+    const method_json = try jsonStringAlloc(allocator, "Input.dispatchMouseEvent");
+    defer allocator.free(method_json);
+    const type_json = try jsonStringAlloc(allocator, event_type);
+    defer allocator.free(type_json);
+
+    if (button) |b| {
+        const button_json = try jsonStringAlloc(allocator, b);
+        defer allocator.free(button_json);
+        const cc = click_count orelse 1;
+        return std.fmt.allocPrint(
+            allocator,
+            "{{\"id\":{d},\"method\":{s},\"params\":{{\"type\":{s},\"x\":{d},\"y\":{d},\"button\":{s},\"clickCount\":{d}}}}}",
+            .{ id, method_json, type_json, x, y, button_json, cc },
+        );
+    }
+
+    return std.fmt.allocPrint(
+        allocator,
+        "{{\"id\":{d},\"method\":{s},\"params\":{{\"type\":{s},\"x\":{d},\"y\":{d}}}}}",
+        .{ id, method_json, type_json, x, y },
+    );
+}
+
+fn buildVerifyExpr(allocator: std.mem.Allocator, file_path: []const u8) ![]u8 {
+    const base = std.fs.path.basename(file_path);
+    const name_json = try jsonStringAlloc(allocator, base);
+    defer allocator.free(name_json);
+    return std.fmt.allocPrint(
+        allocator,
+        "(() => {{ const name = {s}; const inputs = Array.from(document.querySelectorAll('input[type=file]')); const picked = inputs.map((i) => {{ try {{ return {{ accept: String(i.accept||''), n: (i.files?i.files.length:0), names: i.files?Array.from(i.files).map((f)=>f.name):[] }}; }} catch (e) {{ return {{ accept: String(i.accept||''), n: 0, names: [] }}; }} }}); const any = picked.some((x) => (x.names || []).includes(name)); const aria = Array.from(document.querySelectorAll('[aria-label]')).map((e)=>String(e.getAttribute('aria-label')||'')); const hasTile = aria.includes(name); return {{ href: location.href, title: document.title, name, any_input_has_name: any, inputs: picked, has_aria_label_tile: hasTile }}; }})()",
+        .{name_json},
+    );
+}
+
+fn jsonStringAlloc(allocator: std.mem.Allocator, s: []const u8) ![]u8 {
+    var out: std.ArrayList(u8) = .empty;
+    errdefer out.deinit(allocator);
+    try writeJsonString(out.writer(allocator), s);
+    return out.toOwnedSlice(allocator);
 }
 
 fn setRecvTimeout(stream: std.net.Stream, timeout_ms: u32) !void {
