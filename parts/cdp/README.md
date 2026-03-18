@@ -2,8 +2,8 @@
 
 Repo-local CDP helpers, QJS scripts, and Nix glue.
 
-This directory is not the `chromedevtoolprotocol.zig` dependency itself.
-`parts/hq.zig` consumes the Zig module from `chromedevtoolprotocol.zig/`, while
+This directory is not the `parts/chromedevtoolprotocol.zig` dependency itself.
+`parts/hq.zig` consumes the Zig module from `parts/chromedevtoolprotocol.zig/`, while
 `parts/cdp` contains the local operational tooling around it.
 
 ## Pre-Zig Policy
@@ -12,7 +12,7 @@ These `.mjs` tools are treated as pre-Zig artifacts. Their current language is
 temporary; their eventual ownership boundary is not.
 
 - If a script is converging on reusable CDP primitives, it should eventually
-  move into `chromedevtoolprotocol.zig/` as Zig code or as tests/examples around
+  move into `parts/chromedevtoolprotocol.zig/` as Zig code or as tests/examples around
   that module.
 - If a script is converging on ChatGPT automation, HQ worker orchestration, or
   other app-specific behavior, it should eventually move into `parts/hq.zig/`
@@ -20,7 +20,7 @@ temporary; their eventual ownership boundary is not.
 
 ## Current Split
 
-- More likely `chromedevtoolprotocol.zig/` material
+- More likely `parts/chromedevtoolprotocol.zig/` material
   - `chromium-cdp.lib.mjs`
   - `cdp-bridge.zig`
   - `chromium-cdp.nix`

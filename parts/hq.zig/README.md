@@ -2,7 +2,7 @@
 
 Single-binary Zig replacement for the non-E2E HQ path.
 
-This app lives under `parts/hq.zig` and depends on the `chromedevtoolprotocol.zig` Zig module.
+This app lives under `parts/hq.zig` and depends on the `parts/chromedevtoolprotocol.zig` Zig module.
 
 The repo-local CDP helpers and Nix glue live under `parts/cdp`; those are support
 tools around the dependency, not the dependency itself.
@@ -15,13 +15,13 @@ generic reusable CDP primitives.
 
 From `parts/hq.zig`, the build script looks for CDP in these layouts, in order:
 
+- `../chromedevtoolprotocol.zig/src/root.zig`
 - `../../chromedevtoolprotocol.zig/src/root.zig`
 - `../../cdp/chromedevtoolprotocol.zig/src/root.zig`
-- `../../../cdp/chromedevtoolprotocol.zig/src/root.zig`
 
 You can also override discovery explicitly:
 
-- `zig build -Dcdp-root=../../chromedevtoolprotocol.zig/src/root.zig`
+- `zig build -Dcdp-root=../chromedevtoolprotocol.zig/src/root.zig`
 
 ## Baseline x86_64 builds
 
