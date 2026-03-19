@@ -1,0 +1,4 @@
+case_id	description
+sg01	minimal complete target should pass
+sg02	refines and dependency graph should pass
+sg03	exact target with evidence obligation should pass

@@ -1,0 +1,28 @@
+@import DecompositionRun :- tsv { resource = "DecompositionRun.tsv" } .
+@import SourceRecord :- tsv { resource = "SourceRecord.tsv" } .
+@import OriginSource :- tsv { resource = "OriginSource.tsv" } .
+@import OriginTarget :- tsv { resource = "OriginTarget.tsv" } .
+@import OriginView :- tsv { resource = "OriginView.tsv" } .
+@import RunEmitsTarget :- tsv { resource = "RunEmitsTarget.tsv" } .
+@import SupersedesRun :- tsv { resource = "SupersedesRun.tsv" } .
+@import Target :- tsv { resource = "Target.tsv" } .
+
+HasOrigin(?run) :- OriginSource(?run, _).
+HasOrigin(?run) :- OriginTarget(?run, _).
+
+Violation(decomposition_run_missing_origin, ?run, ?run) :- DecompositionRun(?run), ~HasOrigin(?run).
+Violation(decomposition_run_missing_view, ?run, ?run) :- DecompositionRun(?run), ~OriginView(?run, _).
+Violation(origin_source_missing_record, ?run, ?src) :- OriginSource(?run, ?src), ~SourceRecord(?src).
+Violation(origin_target_missing_target, ?run, ?target) :- OriginTarget(?run, ?target), ~Target(?target).
+Violation(emitted_target_missing_run, ?run, ?target) :- RunEmitsTarget(?run, ?target), ~DecompositionRun(?run).
+Violation(emitted_target_missing_target, ?run, ?target) :- RunEmitsTarget(?run, ?target), DecompositionRun(?run), ~Target(?target).
+Violation(supersedes_missing_new_run, ?new, ?old) :- SupersedesRun(?new, ?old), ~DecompositionRun(?new).
+Violation(supersedes_missing_old_run, ?new, ?old) :- SupersedesRun(?new, ?old), DecompositionRun(?new), ~DecompositionRun(?old).
+Violation(supersedes_self_cycle, ?run, ?run) :- SupersedesRun(?run, ?run).
+Violation(supersedes_without_view_change, ?new, ?old) :- SupersedesRun(?new, ?old), ?new != ?old, OriginView(?new, ?view), OriginView(?old, ?view).
+
+HasViolation(?x) :- Violation(_, ?x, _).
+Achieved(?run) :- DecompositionRun(?run), ~HasViolation(?run).
+
+@export Violation :- csv { resource = "Violation.csv" } .
+@export Achieved :- csv { resource = "Achieved.csv" } .

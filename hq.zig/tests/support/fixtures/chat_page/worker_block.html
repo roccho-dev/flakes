@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HQ Fixture Worker Block</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f7f7f8; }
+      main { max-width: 720px; margin: 0 auto; background: #fff; border: 1px solid #d9d9de; border-radius: 12px; padding: 16px; }
+      [data-role="assistant"] { margin-top: 12px; padding: 12px; border-radius: 10px; background: #eef6ff; }
+      pre { margin: 0; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div id="messages">
+        <div data-role="assistant">
+          <pre>MODEL_CONFIRMATION: Pro=YES | MODEL=GPT-5.4 Pro
+BEGIN_WORKER_BLOCK
+PATCH.diff
+Diff
+```diff
+diff --git a/a.txt b/a.txt
+index 1111111..2222222 100644
+--- a/a.txt
++++ b/a.txt
+@@ -1,4 +1,4 @@
+ alpha
+ END_WORKER_BLOCK
+ CHECKLIST
+-bravo
++bravo2
+```
+TEST_REPORT_worker
+Plain text
+```text
+ok
+```
+CHECKLIST
+Plain text
+```text
+YES
+```
+END_WORKER_BLOCK
+          </pre>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,4 @@
+case_id	notes
+np01	decomposition run missing origin view should fail red
+np03	run supersedes missing parent should fail red
+np04	emitted target without decomposition run should fail red

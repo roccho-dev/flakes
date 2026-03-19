@@ -1,0 +1,17 @@
+.{
+    .name = .qjs_host_example,
+    .version = "0.0.0",
+    .fingerprint = 0x22b55433104e72aa,
+    .minimum_zig_version = "0.15.2",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+    .dependencies = .{
+        .quickjs = .{
+            .url = "https://github.com/mitchellh/zig-quickjs-ng/archive/eb1d44ce43fd64f8403c1a94fad242ebae04d1fb.tar.gz",
+            .hash = "quickjs_ng-0.0.0-0cZnA8XHAwCc95T1GAebWrw-SGEwp1Y0fUAmilP8xGuS",
+        },
+    },
+}

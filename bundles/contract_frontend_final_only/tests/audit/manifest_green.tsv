@@ -1,0 +1,3 @@
+case_id	description
+pg01	run with source origin and emitted target should pass
+pg02	revision branch with changed view should pass

@@ -1,0 +1,49 @@
+@import Target :- tsv { resource = "Target.tsv" } .
+@import TargetPopulation :- tsv { resource = "TargetPopulation.tsv" } .
+@import EventAnchor :- tsv { resource = "EventAnchor.tsv" } .
+@import ClockSource :- tsv { resource = "ClockSource.tsv" } .
+@import ObservationWindow :- tsv { resource = "ObservationWindow.tsv" } .
+@import SuccessMetricIdentity :- tsv { resource = "SuccessMetricIdentity.tsv" } .
+@import UseCase :- tsv { resource = "UseCase.tsv" } .
+@import UseCaseForTarget :- tsv { resource = "UseCaseForTarget.tsv" } .
+@import RuntimeObligation :- tsv { resource = "RuntimeObligation.tsv" } .
+@import LatencyBudget :- tsv { resource = "LatencyBudget.tsv" } .
+@import CostBudget :- tsv { resource = "CostBudget.tsv" } .
+@import AuthzContract :- tsv { resource = "AuthzContract.tsv" } .
+@import ProductionTraceBinding :- tsv { resource = "ProductionTraceBinding.tsv" } .
+@import DecompositionRun :- tsv { resource = "DecompositionRun.tsv" } .
+@import OriginSourceRef :- tsv { resource = "OriginSourceRef.tsv" } .
+@import OriginTargetRef :- tsv { resource = "OriginTargetRef.tsv" } .
+@import OriginView :- tsv { resource = "OriginView.tsv" } .
+@import RunEmitsTarget :- tsv { resource = "RunEmitsTarget.tsv" } .
+@import RunSupersedes :- tsv { resource = "RunSupersedes.tsv" } .
+
+SemanticViolation(semantic_target_missing_population_definition, ?t, ?t) :- Target(?t), ~TargetPopulation(?t, _).
+SemanticViolation(semantic_target_missing_event_anchor, ?t, ?t) :- Target(?t), ~EventAnchor(?t, _).
+SemanticViolation(semantic_target_missing_clock_source, ?t, ?t) :- Target(?t), ~ClockSource(?t, _).
+SemanticViolation(semantic_target_missing_observation_window, ?t, ?t) :- Target(?t), ~ObservationWindow(?t, _).
+SemanticViolation(semantic_target_missing_success_metric_identity, ?t, ?t) :- Target(?t), ~SuccessMetricIdentity(?t, _).
+SemanticViolation(semantic_target_missing_usecase_link, ?t, ?t) :- Target(?t), ~UseCaseForTarget(_, ?t).
+SemanticViolation(semantic_target_usecase_link_missing_usecase, ?t, ?u) :- UseCaseForTarget(?u, ?t), ~UseCase(?u).
+SemanticViolation(semantic_target_linked_usecase_missing_runtime_obligation, ?t, ?u) :- UseCaseForTarget(?u, ?t), UseCase(?u), ~RuntimeObligation(?u, _).
+SemanticViolation(semantic_target_linked_usecase_missing_latency_budget, ?t, ?u) :- UseCaseForTarget(?u, ?t), UseCase(?u), ~LatencyBudget(?u, _).
+SemanticViolation(semantic_target_linked_usecase_missing_cost_budget, ?t, ?u) :- UseCaseForTarget(?u, ?t), UseCase(?u), ~CostBudget(?u, _).
+SemanticViolation(semantic_target_linked_usecase_missing_authz_contract, ?t, ?u) :- UseCaseForTarget(?u, ?t), UseCase(?u), ~AuthzContract(?u, _).
+SemanticViolation(semantic_target_linked_usecase_missing_production_trace_binding, ?t, ?u) :- UseCaseForTarget(?u, ?t), UseCase(?u), ~ProductionTraceBinding(?u, _).
+
+AuditViolation(audit_target_missing_emitter_run, ?t, ?t) :- Target(?t), ~RunEmitsTarget(_, ?t).
+AuditViolation(audit_emitter_run_missing_origin_member, ?t, ?r) :- RunEmitsTarget(?r, ?t), DecompositionRun(?r), ~OriginSourceRef(?r, _), ~OriginTargetRef(?r, _).
+AuditViolation(audit_emitter_run_missing_origin_view, ?t, ?r) :- RunEmitsTarget(?r, ?t), DecompositionRun(?r), ~OriginView(?r, _).
+AuditViolation(audit_target_emitter_run_missing_decomposition_run, ?t, ?r) :- RunEmitsTarget(?r, ?t), ~DecompositionRun(?r).
+AuditViolation(audit_target_missing_emitter_successor_reference, ?t, ?r) :- RunEmitsTarget(?r, ?t), RunSupersedes(?r, ?p), ~DecompositionRun(?p).
+
+HasSemanticViolation(?t) :- SemanticViolation(_, ?t, _).
+HasAuditViolation(?t) :- AuditViolation(_, ?t, _).
+
+SemanticAchieved(?t) :- Target(?t), ~HasSemanticViolation(?t).
+AuditAchieved(?t) :- Target(?t), ~HasAuditViolation(?t).
+
+@export SemanticViolation :- csv { resource = "SemanticViolation.csv" } .
+@export SemanticAchieved :- csv { resource = "SemanticAchieved.csv" } .
+@export AuditViolation :- csv { resource = "AuditViolation.csv" } .
+@export AuditAchieved :- csv { resource = "AuditAchieved.csv" } .

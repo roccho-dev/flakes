@@ -1,0 +1,14 @@
+.{
+    .name = .hq_zig_app,
+    .version = "0.2.0",
+    .fingerprint = 0xa3d4d68dc4813897,
+    .minimum_zig_version = "0.16.0-dev.2535+b5bd49460",
+    .paths = .{
+        "src",
+        "cli",
+        "tests",
+        "build.zig",
+        "build.zig.zon",
+        "README.md",
+    },
+}
