@@ -1,27 +1,20 @@
-# Discussion Management Skill
+---
+name: managing-discussions
+description: Coordinates a spec-to-oc-to-gpt discussion system for scoped design, evidence, dissent, prompt repair, decision-state, and backend execution. Use when managing approved discussion sources, collection progress, merge state, and execution readiness across multiple discussion sessions.
+---
 
-## Goal
+# Managing Discussions
 
-This skill captures how `spec` manages a multi-layer discussion system:
+Use this skill to drive a live `spec -> oc -> gpt` system from collection to
+execution.
 
-- `spec` owns the full objective
-- `oc` sessions are delegated managers
-- GPT threads are external sources
+This skill is structural and dynamic:
 
-The management goal is not only to collect advice. It is to drive the whole flow
-from:
+- runtime values stay outside the skill
+- only the control model lives here
+- session names, URLs, claim IDs, and source assignments belong to runtime state
 
-- purpose clarification
-- IR design closure
-- claim-based evidence collection
-- dissent and counterargument capture
-- backend decision
-- backend execution
-
-through to a state where one implementation path is chosen and at least one
-backend actually works.
-
-## Core Model
+## Runtime Model
 
 ```text
 spec
@@ -29,159 +22,99 @@ spec
     -> gpt
 ```
 
-- `spec`
-  - decision owner
-  - integration owner
-  - execution owner
-- `oc`
-  - scoped manager for one concern area
-  - tracks completion-state, decision-state, and execution-state
-- `gpt`
-  - external source of designs, objections, theory, comparisons, and stress tests
-  - never treated as source of truth by itself
+- `spec` owns the whole objective, final decisions, and execution.
+- `oc` owns one scoped subset of the objective.
+- `gpt` provides attributable external outputs.
 
-## Naming And Tracking Convention
+## Use This Skill When
 
-Status rows must use this schema:
+- multiple discussion managers must be coordinated
+- approved GPT sources must be tracked and constrained
+- collection-state must advance into decision-state
+- weak replies require prompt repair
+- one candidate must be chosen and pushed toward execution
 
-```json
-["member/url", "goal", "status"]
-```
+## Required Runtime State
 
-Interpretation:
+Read `references/registries.md`.
 
-- `member`
-  - the old path-like logical member name
-  - examples: `oc/oc-ir`, `oc/oc-paper/gpt-D2`
-- `url`
-  - either the session name or the concrete GPT URL
-  - keep it in the same column as `member`
+At minimum, runtime must maintain:
 
-Recommended rendering:
+- objective registry
+- member registry
+- source registry
+- state registry
+- prompt contract registry
+
+## Required State Machine
 
 ```text
-member/url | goal | status
+source-selection
+-> declaration-send-complete
+-> response-collection
+-> weakness-diagnosis
+-> prompt-improvement
+-> decision-grade-merge
+-> implementation-lock
+-> backend-execution
 ```
 
-Examples:
+Every managed scope must move through this sequence.
 
-```text
-spec | IR design complete + backend working | decision incomplete, execution incomplete
-oc/oc-ir | converge to one IR candidate | waiting for decision-grade merge table
-oc/oc-ir/gpt-design-lead / https://chatgpt.com/c/... | 2-3 concrete IR options | prompt sent, table not yet collected
-```
+## Required Tables
 
-## What `spec` Is Responsible For
+Read `references/tables.md`.
 
-`spec` is responsible for all of the following, not only message routing:
+At minimum, every managed scope must produce:
 
-1. Keep the large purpose explicit
-2. Split work into the right `oc` managers
-3. Prevent scope drift
-4. Prevent unapproved GPT source sprawl
-5. Require dissent, not only agreement
-6. Require claim-based evidence, not only broad survey
-7. Require decision-grade outputs, not only suggestion-grade outputs
-8. Choose one candidate when enough evidence exists
-9. Decide what is locked now vs deferred to PoC
-10. Drive at least one backend to real execution
+- `member/url | goal | status`
+- weakness table
+- prompt improvement table
+- merge table
 
-## What `oc` Sessions Are Expected To Do
+Evidence scopes must also produce:
 
-Each `oc` session should manage a bounded concern area and expose:
+- claim table
+- evidence table
+- decision impact table
 
-- what completion means
-- what decision means
-- what execution means
-- which GPT sources are approved
-- what is still missing
-- which prompts underperformed
-- how those prompts should be improved
+## Hard Rules
 
-An `oc` session should not silently invent new source threads. It must either:
+- Use only approved sources.
+- If a new source is needed, raise `UNAPPROVED_SOURCE_REQUEST` first.
+- Attribute merged results by `member/url`.
+- Require dissent, not only support.
+- Require claim-based evidence where implementation lock depends on theory.
+- Prefer decision-grade outputs over suggestion-grade outputs.
+- Weak replies must trigger diagnosis and prompt repair.
+- Discussion is not done until at least one backend path executes.
 
-- stay within the approved source set
-- or raise `UNAPPROVED_SOURCE_REQUEST`
+## Recovery
 
-## Required Management Expectations
+Read `references/recovery.md` when:
 
-The following expectations should be treated as mandatory across the full
-`spec -> oc -> gpt` system.
+- a source gives no reply
+- a reply is broad but non-structured
+- a source is blocked by runtime issues
+- one weak source needs a stronger resend contract
 
-### 1. Objective Control
+## Typical Scope Classes
 
-- The top-level objective is explicit and stable
-- Subgoals are tracked under that objective
-- Non-goals are explicit
-- Open questions are explicit
+Read `references/examples.md`.
 
-### 2. Scope Separation
+Typical scoped managers include:
 
-- IR design work is separated from evidence gathering work
-- Broad survey is not allowed to swallow claim-driven work
-- Backend stress is separated from semantic design
-- Dissent is separated from design-lead output
+- design scopes
+- objection scopes
+- backend stress scopes
+- claim-evidence scopes
+- counterevidence scopes
 
-### 3. Source Control
+These are templates, not fixed instances.
 
-- Every GPT source is approved before use
-- Every merged result records `member/url`
-- New source creation is exceptional and explicit
-- Reuse is preferred over uncontrolled source growth
+## Decision-Grade Preference
 
-### 4. Completion-State Control
-
-- Every `oc` defines a completion-state
-- Completion-state must depend on concrete evidence
-- Completion-state is not satisfied by vague prose
-- Completion-state must be checkable from the session itself
-
-### 5. Decision-State Control
-
-- Every `oc` must eventually expose a decision-state, not only a collection state
-- Decision-state must show:
-  - recommended option
-  - rejected or not-yet options
-  - strongest objection
-  - remaining open question
-  - cheapest next test
-
-### 6. Execution-State Control
-
-- At least one path must move from discussion into execution
-- Backend execution is not optional forever
-- A chosen path must lead to a real artifact or test
-
-### 7. Dissent Capture
-
-- At least one source must be dedicated to objections
-- Weak objections are not enough
-- Required objection classes include:
-  - framing objections
-  - ontology objections
-  - backend-bias objections
-  - minimum-correction proposals
-
-### 8. Evidence Discipline
-
-- Broad survey alone is insufficient
-- Evidence must be claim-based where implementation lock depends on it
-- Each claim should ideally have:
-  - support
-  - counter or limitation
-  - design implication
-  - implementation impact
-
-### 9. Prompt Quality Management
-
-- Weak or missing responses must trigger prompt diagnosis
-- `oc` should explain why the prompt underperformed
-- `oc` should propose a prompt delta, not only note failure
-- Prompt improvements should be ranked by resend priority
-
-### 10. Decision-Grade Output Preference
-
-GPT output is stronger when it includes fields like:
+Push sources toward outputs such as:
 
 - `RECOMMENDED_OPTION`
 - `WHY_THIS_SHOULD_BE_CHOSEN`
@@ -190,157 +123,29 @@ GPT output is stronger when it includes fields like:
 - `DISCONFIRMING_EVIDENCE`
 - `CHEAPEST_NEXT_TEST`
 
-Management should push sources toward this level whenever possible.
+## Failure Signals
 
-## Recommended `oc` Split
+Treat these as failures:
 
-### `oc/oc-ir`
+- uncontrolled source growth
+- no objection source
+- broad survey replacing claim evidence
+- many suggestions but no recommendation
+- weak outputs without prompt repair
+- backend execution deferred indefinitely
 
-Purpose:
+## Promotion Gate
 
-- converge post-IR design into one candidate handoff model
+Do not treat this skill as proven merely because the management model is well
+written.
 
-Recommended child members:
+It should only be promoted as a stable skill after the workflow has actually
+recovered the expected information from `oc` and `gpt` and driven at least one
+backend path into execution.
 
-```text
-oc/oc-ir/gpt-design-lead
-oc/oc-ir/gpt-dissent-boundary
-oc/oc-ir/gpt-backend-stress
-oc/oc-ir/gpt-reserve
-```
+## References
 
-Expected outputs:
-
-- concrete IR options table
-- objections table
-- backend stress table
-- merge table
-
-### `oc/oc-paper`
-
-Purpose:
-
-- gather implementation-lock evidence by claim
-
-Recommended child members:
-
-```text
-oc/oc-paper/gpt-D1
-oc/oc-paper/gpt-D2
-oc/oc-paper/gpt-D3
-oc/oc-paper/gpt-D4
-oc/oc-paper/gpt-D5
-oc/oc-paper/gpt-counter
-oc/oc-paper/gpt-reference
-```
-
-Where claims typically mean:
-
-- `D1`: purpose -> operationalization
-- `D2`: semantic-core semantics
-- `D3`: Nemo audit overlay
-- `D4`: residual / proof / external checker
-- `D5`: multi-backend projection theory
-
-Expected outputs:
-
-- claim table
-- evidence table
-- decision impact table
-
-## Required Tables
-
-### Status Table
-
-```text
-member/url | goal | status
-```
-
-### Weakness Table
-
-```text
-member/url | goal | status
-```
-
-Status should say what is missing, not only "incomplete".
-
-Examples:
-
-- `prompt sent, no table response yet`
-- `good answer but not decision-grade`
-- `broad survey only, claim evidence missing`
-- `backend stress done, merge not done`
-
-### Prompt Improvement Table
-
-Recommended columns:
-
-```text
-member/url | diagnosis of weakness | prompt delta | stronger required format | resend priority
-```
-
-## Quality Expectations For Returned Content
-
-### Good IR-side answers should show
-
-- 2-3 concrete options
-- explicit recommendation
-- explicit rejection or deferral
-- explicit objections
-- explicit residual handling
-- backend stress view
-
-### Good paper-side answers should show
-
-- claim alignment
-- source support
-- source limitation or counterargument
-- design implication
-- implementation impact
-- whether lock is justified now
-
-## What Counts As Progress
-
-Progress is not only "more discussion".
-Progress means movement across these stages:
-
-1. source selection
-2. declaration-send completion
-3. response collection
-4. weakness diagnosis
-5. prompt improvement
-6. decision-grade merge
-7. implementation lock
-8. backend execution
-
-## What Counts As Failure
-
-The system is failing if any of these happen:
-
-- too many uncontrolled GPT sources appear
-- everyone agrees but nobody objects
-- broad survey replaces claim-based evidence
-- many suggestions exist but no recommendation is chosen
-- IR stays abstract and never reaches backend execution
-- weak answers are noted but prompts are not improved
-- status tables stop reflecting real session state
-
-## Minimal Exit Criteria
-
-The overall management task is not done until:
-
-- one IR / handoff candidate is selected
-- the claim table says what is locked now vs deferred
-- at least one backend path is executed successfully
-- the main objections and residual risks are recorded
-
-## Practical Operating Rule
-
-When in doubt:
-
-- tighten source control
-- tighten output contracts
-- ask for objections
-- ask for decision-grade output
-- ask for cheapest next test
-- prefer one working backend over endless abstract refinement
+- `references/registries.md`
+- `references/tables.md`
+- `references/recovery.md`
+- `references/examples.md`
