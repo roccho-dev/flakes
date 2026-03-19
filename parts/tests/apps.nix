@@ -24,9 +24,6 @@
           export XDG_STATE_HOME="$HOME/.local/state"
           mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
 
-          export OPENCODE_DISABLE_LSP_DOWNLOAD=true
-          export OPENCODE_DISABLE_AUTOUPDATE=true
-
           opencode --version >/dev/null
           opencode --help >/dev/null
 
@@ -61,9 +58,6 @@
           export XDG_CACHE_HOME="$HOME/.cache"
           export XDG_STATE_HOME="$HOME/.local/state"
           mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
-
-          export OPENCODE_DISABLE_LSP_DOWNLOAD=true
-          export OPENCODE_DISABLE_AUTOUPDATE=true
 
           opencode --version >/dev/null
 

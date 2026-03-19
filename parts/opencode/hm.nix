@@ -1,16 +1,12 @@
 { pkgs, ... }:
 
 let
+  opencode = import ./package.nix { inherit pkgs; };
+
   serve = pkgs.writeShellScript "opencode-home-serve" ''
     set -euo pipefail
 
-    export OPENCODE_CONFIG="/home/nixos/repos/flakes/opencode.json"
-
-    : "''${OPENCODE_DISABLE_LSP_DOWNLOAD:=true}"
-    : "''${OPENCODE_DISABLE_AUTOUPDATE:=true}"
-    export OPENCODE_DISABLE_LSP_DOWNLOAD OPENCODE_DISABLE_AUTOUPDATE
-
-    exec /home/nixos/.nix-profile/bin/opencode \
+    exec "${opencode}/bin/opencode" \
       serve --hostname "''${OPENCODE_LISTEN_HOST:-0.0.0.0}" \
       --port "''${OPENCODE_PORT:-4096}" \
       --print-logs

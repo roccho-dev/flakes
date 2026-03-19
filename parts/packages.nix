@@ -8,7 +8,6 @@
 
         export TMPDIR=''${TMPDIR:-/tmp}
 
-        # Isolation: do not read user ~/.config
         export HOME="$TMPDIR/helix-home"
         export XDG_CONFIG_HOME="$HOME/.config"
         export XDG_CACHE_HOME="$HOME/.cache"
@@ -22,29 +21,11 @@
         exec "${pkgs.helix}/bin/hx" "$@"
       '';
 
-      opencodeConfig = ../../opencode.json;
-
-      opencode = pkgs.writeShellScriptBin "opencode" ''
-        set -euo pipefail
-
-        export OPENCODE_CONFIG="${opencodeConfig}"
-
-        # Deterministic defaults; users can override explicitly.
-        : "''${OPENCODE_DISABLE_LSP_DOWNLOAD:=true}"
-        : "''${OPENCODE_DISABLE_AUTOUPDATE:=true}"
-        export OPENCODE_DISABLE_LSP_DOWNLOAD OPENCODE_DISABLE_AUTOUPDATE
-
-        exec "${pkgs.opencode}/bin/opencode" "$@"
-      '';
-
-      # Lazygit delta integration
-      # - Do not point lazygit at a store config (it may try to migrate/write it)
-      # - Force delta side-by-side via an ephemeral config file
+      opencode = import ./opencode/package.nix { inherit pkgs; };
 
       lazygit = pkgs.writeShellScriptBin "lazygit" ''
         set -euo pipefail
 
-        # If the user explicitly provides config flags, don't override them.
         for arg in "$@"; do
           case "$arg" in
             -ucf|--use-config-file|-ucd|--use-config-dir)
