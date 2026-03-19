@@ -8,6 +8,14 @@ description: Coordinates a spec-to-oc-to-gpt discussion system for scoped design
 Use this skill to drive a live `spec -> oc -> gpt` system from collection to
 execution.
 
+## Start Here
+
+For live operation or resume-after-memory-loss, read `RUNBOOK.md` first.
+
+`RUNBOOK.md` is the entry procedure for runtime state handling.
+It requires the operator to create or update the live organization/state tables,
+including the mandatory `member/url | goal | status` table on every run.
+
 This skill is structural and dynamic:
 
 - runtime values stay outside the skill
@@ -145,6 +153,7 @@ backend path into execution.
 
 ## References
 
+- `RUNBOOK.md`
 - `references/registries.md`
 - `references/tables.md`
 - `references/recovery.md`
