@@ -3,7 +3,6 @@
   imports = [
     ./upstream.nix
     ./opencode/default.nix
-    ./local/default.nix
     ./qjs.zig/default.nix
     ./chromedevtoolprotocol.zig/default.nix
     ./hq.zig/default.nix
