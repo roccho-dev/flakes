@@ -69,6 +69,11 @@ Access from `oc` to approved `gpt` sources should follow these rules:
 - record runtime or transport blockers explicitly in state
 - if repeated access was used under an approved exception, make that exception
   explicit in the update
+- treat downstream `gpt` state as known only after `oc` has recovered and
+  reported it
+- do not fill per-`gpt` state rows from operator inference alone
+- when per-source content matters, materialize a source report table instead of
+  returning merge-only reporting
 
 ## Re-entry Rule
 
@@ -131,6 +136,18 @@ member/url | diagnosis of weakness | prompt delta | stronger required format | r
 member/url | next required transition | blocker | owner
 ```
 
+### 6. Source Report Table
+
+```text
+member/url | what the GPT reported | how it is being used | confidence/limitation
+```
+
+Use this when `oc` reports downstream `gpt` outputs back to `spec` and the
+per-source content matters for management or decision-state.
+
+Only report recovered source content here.
+Do not fill this table from inference or guesswork.
+
 ## If State Does Not Yet Exist
 
 If the state table is missing, create it immediately.
@@ -167,6 +184,9 @@ During this loop, do not pull content work back into `oc` unless:
 
 During this loop, do not turn `oc -> gpt` access into background polling unless
 an explicit exception was approved for the run.
+
+During this loop, do not promote downstream `gpt` state into `spec` state until
+`oc` has reported that state in recovered form.
 
 ## Completion Rules
 
@@ -209,6 +229,9 @@ Treat these as failures:
 - unnecessary `oc`-side recreation of content that should have been produced by
   an approved `gpt` source
 - unapproved polling or repeated checking against `gpt` sources
+- per-`gpt` state reported without recovered `oc` evidence
+- merge-only reporting when per-source source content materially affects the
+  decision
 - weak reply with no diagnosis
 - resend with no prompt delta
 - use of unapproved source
@@ -232,6 +255,9 @@ Every management update should prefer this shape:
 ```text
 member/url | goal | status
 member/url | goal | status
+...
+
+member/url | what the GPT reported | how it is being used | confidence/limitation
 ...
 
 member/url | diagnosis of weakness | prompt delta | stronger required format | resend priority

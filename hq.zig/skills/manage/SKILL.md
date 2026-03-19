@@ -43,6 +43,14 @@ spec
 - `oc` owns one scoped subset of the objective.
 - `gpt` provides attributable external outputs.
 
+Visibility rule:
+
+- `spec` does not treat downstream `gpt` state as directly known unless `oc`
+  has recovered and reported it
+- `oc` is the reporting boundary between `spec` and downstream `gpt` sources
+- when per-source content matters, `oc` must return source-readable reporting,
+  not only merge-level conclusions
+
 In live use, `spec` means the current managing operator/session using this
 skill. It is not a separate hidden system.
 
@@ -137,6 +145,10 @@ At minimum, every managed scope must produce:
 - prompt improvement table
 - merge table
 
+When downstream `gpt` reporting matters, also produce:
+
+- source report table
+
 Evidence scopes must also produce:
 
 - claim table
@@ -163,6 +175,10 @@ The main state table is not a task list.
 - Do not hide missing state behind vague `status` labels such as `incomplete`.
 - Prefer delegating content work to approved `gpt` sources over recreating that
   work inside `oc`.
+- Do not report downstream `gpt` state as if directly known unless it has been
+  recovered into `oc`.
+- When a decision depends on what specific `gpt` sources said, require
+  source-readable per-source reporting, not merge-only reporting.
 - Discussion is not done until at least one backend path executes.
 
 ## Recovery

@@ -47,6 +47,22 @@ Keep the same declarative writing rule for `goal` and `status`.
 member/url | diagnosis of weakness | prompt delta | stronger required format | resend priority
 ```
 
+## Source Report Table
+
+```text
+member/url | what the GPT reported | how it is being used | confidence/limitation
+```
+
+Use this when `oc` reports downstream `gpt` outputs back to `spec` and the
+source-by-source content matters.
+
+Rules:
+
+- include only recovered source content
+- do not fill this table from inference, reconstruction, or operator guesswork
+- do not let this replace the merge table; use it as the readable per-source
+  bridge
+
 ## Merge Table
 
 ```text
