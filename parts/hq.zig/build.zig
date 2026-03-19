@@ -120,8 +120,8 @@ fn resolveCdpRoot(b: *std.Build) []const u8 {
     };
 
     for (candidates) |candidate| {
-        const file = std.Io.Dir.cwd().openFile(b.graph.io, candidate, .{}) catch continue;
-        file.close(b.graph.io);
+        const file = std.fs.cwd().openFile(candidate, .{}) catch continue;
+        file.close();
         return candidate;
     }
 

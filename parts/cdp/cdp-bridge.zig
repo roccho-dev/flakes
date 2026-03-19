@@ -9,16 +9,13 @@ const WsUrl = struct {
     path: []const u8,
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
-
-    const argv = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, argv);
+pub fn main(init: std.process.Init) !void {
+    const allocator = init.gpa;
+    const io = init.io;
+    const argv = try init.minimal.args.toSlice(init.arena.allocator());
 
     if (argv.len < 2) {
-        try usage();
+        try usage(io);
         return;
     }
 
@@ -27,7 +24,7 @@ pub fn main() !void {
         const opts = try parseAddrPort(argv, 2);
         const body = try httpRequest(allocator, opts.addr, opts.port, "GET", "/json/version");
         defer allocator.free(body);
-        try writeJsonOrString(body);
+        try writeJsonOrString(io, body);
         return;
     }
 
@@ -37,8 +34,7 @@ pub fn main() !void {
         defer allocator.free(body);
         const ws = try extractJsonStringField(allocator, body, "webSocketDebuggerUrl");
         defer allocator.free(ws);
-        const out = std.fs.File.stdout().deprecatedWriter();
-        try out.print("{s}\n", .{ws});
+        try writeStdoutLine(io, ws);
         return;
     }
 
@@ -46,7 +42,7 @@ pub fn main() !void {
         const opts = try parseAddrPort(argv, 2);
         const body = try httpRequest(allocator, opts.addr, opts.port, "GET", "/json/list");
         defer allocator.free(body);
-        try writeJsonOrString(body);
+        try writeJsonOrString(io, body);
         return;
     }
 
@@ -57,31 +53,31 @@ pub fn main() !void {
         defer allocator.free(path);
         const body = try httpRequest(allocator, opts.addr, opts.port, "PUT", path);
         defer allocator.free(body);
-        try writeJsonOrString(body);
+        try writeJsonOrString(io, body);
         return;
     }
 
     if (std.mem.eql(u8, cmd, "close")) {
         const opts = try parseAddrPort(argv, 2);
         const id = try parseFlagValue(argv, 2, "--id") orelse {
-            try die("missing: --id");
+            try die(io, "missing: --id");
             return;
         };
         const path = try std.fmt.allocPrint(allocator, "/json/close/{s}", .{id});
         defer allocator.free(path);
         const body = try httpRequest(allocator, opts.addr, opts.port, "PUT", path);
         defer allocator.free(body);
-        try writeJsonOrString(body);
+        try writeJsonOrString(io, body);
         return;
     }
 
     if (std.mem.eql(u8, cmd, "call")) {
         const ws_url = try parseFlagValue(argv, 2, "--ws") orelse {
-            try die("missing: --ws");
+            try die(io, "missing: --ws");
             return;
         };
         const req = try parseFlagValue(argv, 2, "--req") orelse {
-            try die("missing: --req");
+            try die(io, "missing: --req");
             return;
         };
 
@@ -90,22 +86,21 @@ pub fn main() !void {
 
         const resp = try wsCall(allocator, ws_url, req, timeout_ms);
         defer allocator.free(resp);
-        const out = std.fs.File.stdout().deprecatedWriter();
-        try out.print("{s}\n", .{resp});
+        try writeStdoutLine(io, resp);
         return;
     }
 
     if (std.mem.eql(u8, cmd, "filechooser")) {
         const ws_url = try parseFlagValue(argv, 2, "--ws") orelse {
-            try die("missing: --ws");
+            try die(io, "missing: --ws");
             return;
         };
         const selector = try parseFlagValue(argv, 2, "--selector") orelse {
-            try die("missing: --selector");
+            try die(io, "missing: --selector");
             return;
         };
         const file_path = try parseFlagValue(argv, 2, "--file") orelse {
-            try die("missing: --file");
+            try die(io, "missing: --file");
             return;
         };
 
@@ -114,17 +109,16 @@ pub fn main() !void {
 
         const resp = try wsFileChooser(allocator, ws_url, selector, file_path, timeout_ms);
         defer allocator.free(resp);
-        const out = std.fs.File.stdout().deprecatedWriter();
-        try out.print("{s}\n", .{resp});
+        try writeStdoutLine(io, resp);
         return;
     }
 
-    try usage();
+    try usage(io);
 }
 
-fn usage() !void {
-    const w = std.fs.File.stderr().deprecatedWriter();
-    try w.writeAll(
+fn usage(io: std.Io) !void {
+    try std.Io.File.stderr().writeStreamingAll(
+        io,
         "cdp-bridge: minimal CDP helper (HTTP + WebSocket)\n\n" ++
             "usage:\n" ++
             "  cdp-bridge version [--addr 127.0.0.1] [--port 9222]\n" ++
@@ -137,11 +131,16 @@ fn usage() !void {
     );
 }
 
-fn die(msg: []const u8) !void {
-    const w = std.fs.File.stderr().deprecatedWriter();
-    try w.print("{s}\n", .{msg});
-    try usage();
+fn die(io: std.Io, msg: []const u8) !void {
+    var stderr_writer = std.Io.File.stderr().writer(io, &.{});
+    try stderr_writer.interface.print("{s}\n", .{msg});
+    try usage(io);
     std.process.exit(2);
+}
+
+fn writeStdoutLine(io: std.Io, text: []const u8) !void {
+    var stdout_writer = std.Io.File.stdout().writer(io, &.{});
+    try stdout_writer.interface.print("{s}\n", .{text});
 }
 
 const AddrPort = struct {
@@ -157,11 +156,11 @@ fn parseAddrPort(argv: []const []const u8, start: usize) !AddrPort {
     while (i < argv.len) : (i += 1) {
         const a = argv[i];
         if (std.mem.eql(u8, a, "--addr")) {
-            if (i + 1 >= argv.len) try die("missing value for --addr");
+            if (i + 1 >= argv.len) return error.MissingAddrValue;
             addr = argv[i + 1];
             i += 1;
         } else if (std.mem.eql(u8, a, "--port")) {
-            if (i + 1 >= argv.len) try die("missing value for --port");
+            if (i + 1 >= argv.len) return error.MissingPortValue;
             port = std.fmt.parseUnsigned(u16, argv[i + 1], 10) catch port;
             i += 1;
         }
@@ -234,8 +233,9 @@ fn looksLikeJson(body: []const u8) bool {
     return trimmed[0] == '{' or trimmed[0] == '[';
 }
 
-fn writeJsonOrString(body: []const u8) !void {
-    const out = std.fs.File.stdout().deprecatedWriter();
+fn writeJsonOrString(io: std.Io, body: []const u8) !void {
+    var stdout_writer = std.Io.File.stdout().writer(io, &.{});
+    const out = &stdout_writer.interface;
     if (looksLikeJson(body)) {
         try out.print("{s}\n", .{body});
         return;
