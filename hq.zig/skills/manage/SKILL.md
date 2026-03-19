@@ -16,6 +16,15 @@ For live operation or resume-after-memory-loss, read `RUNBOOK.md` first.
 It requires the operator to create or update the live organization/state tables,
 including the mandatory `member/url | goal | status` table on every run.
 
+In those tables:
+
+- `goal` is declarative and describes the desired end-state
+- `status` is declarative and describes the currently verified state relative to
+  that goal
+- `status` may describe an intermediate state or the completed goal state
+- `how to move next` belongs in transition or prompt tables, not in `goal`
+  or `status`
+
 This skill is structural and dynamic:
 
 - runtime values stay outside the skill
@@ -33,6 +42,50 @@ spec
 - `spec` owns the whole objective, final decisions, and execution.
 - `oc` owns one scoped subset of the objective.
 - `gpt` provides attributable external outputs.
+
+In live use, `spec` means the current managing operator/session using this
+skill. It is not a separate hidden system.
+
+## Delegation Bias
+
+Default operating bias is GPT-heavy.
+
+- treat `gpt` sessions as the primary place for content work
+- when an approved `gpt` source can do the work, let it do the work there
+- keep `oc` as close as possible to a control plane rather than a content
+  plane
+
+This includes a strong bias such as `~90% delegation` when the work is:
+
+- table reconstruction
+- option comparison
+- dissent generation
+- counterargument generation
+- evidence restatement
+- reformatting into required output sections
+
+This does not mean `oc` gives up management responsibility.
+
+`oc` remains responsible for:
+
+- approved source control
+- output contract enforcement
+- weakness diagnosis
+- resend decisions
+- merge and decision-state updates
+- lock/defer judgments
+- backend execution verification
+
+## Access Rules
+
+Access from `oc` to `gpt` is controlled, not free-form.
+
+- use only approved `gpt` sources
+- prefer send-once and one-shot collection over repeated checking
+- polling is exceptional and allowed only when explicitly approved for that run
+- when waiting is needed, prefer a delayed one-shot check instead of a loop
+- make transport/runtime blockers explicit in state
+- do not hide repeated access behind vague status text
 
 ## Use This Skill When
 
@@ -53,6 +106,10 @@ At minimum, runtime must maintain:
 - source registry
 - state registry
 - prompt contract registry
+
+When delegation strategy matters, also maintain:
+
+- delegation policy registry
 
 ## Required State Machine
 
@@ -86,6 +143,13 @@ Evidence scopes must also produce:
 - evidence table
 - decision impact table
 
+The main state table is not a task list.
+
+- `goal` says what must be true when the member is done
+- `status` says what is true now, what is still missing, or what blocker is
+  present
+- `next required transition` is tracked separately
+
 ## Hard Rules
 
 - Use only approved sources.
@@ -95,6 +159,10 @@ Evidence scopes must also produce:
 - Require claim-based evidence where implementation lock depends on theory.
 - Prefer decision-grade outputs over suggestion-grade outputs.
 - Weak replies must trigger diagnosis and prompt repair.
+- Do not write `goal` as an instruction or operating step.
+- Do not hide missing state behind vague `status` labels such as `incomplete`.
+- Prefer delegating content work to approved `gpt` sources over recreating that
+  work inside `oc`.
 - Discussion is not done until at least one backend path executes.
 
 ## Recovery

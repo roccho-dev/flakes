@@ -16,8 +16,59 @@ At minimum, every progress update must include:
 member/url | goal | status
 ```
 
+Write those columns this way:
+
+- `goal`: declarative end-state; describe what must be true when the member is
+  done
+- `status`: declarative current state relative to that goal; describe what is
+  already true, what is still missing, or what blocker exists
+- keep instructions, resend steps, and next moves out of `goal` and `status`
+
 Do not respond with free prose only.
 Use prose only after the state tables.
+
+## Delegation Rule
+
+Default operating bias is GPT-heavy.
+
+- prefer letting approved `gpt` sources do the content work
+- keep `oc` focused on control-plane work
+- treat a strong bias such as `~90% delegation` as an operating preference, not
+  as a precise metric
+
+Content work that should stay in `gpt` whenever possible includes:
+
+- table reconstruction
+- structured restatement
+- objection generation
+- option comparison
+- evidence restatement
+- required-format regeneration
+
+`oc` should retain:
+
+- approved source control
+- output contract enforcement
+- weakness diagnosis
+- resend policy
+- merge and decision-state control
+- lock/defer judgment
+- execution verification
+
+## Access Rule
+
+In this runbook, `spec` means the current managing operator/session running the
+discussion system.
+
+Access from `oc` to approved `gpt` sources should follow these rules:
+
+- prefer send-once and one-shot collection
+- do not poll by default
+- polling is allowed only when the current run has explicit approval for it
+- when waiting is needed, wait and do a later one-shot check instead of a loop
+- record runtime or transport blockers explicitly in state
+- if repeated access was used under an approved exception, make that exception
+  explicit in the update
 
 ## Re-entry Rule
 
@@ -35,6 +86,8 @@ The minimum runtime state to reconstruct is:
 
 On every active run, maintain these runtime tables.
 
+When delegation strategy matters, also materialize a delegation policy registry.
+
 ### 1. Main State Table
 
 ```text
@@ -42,6 +95,15 @@ member/url | goal | status
 ```
 
 This is the mandatory organization/state view.
+
+`goal` is not a how-to field.
+`status` is not a vague phase label.
+
+Prefer state descriptions such as:
+
+- `strong dissent table is recovered and merge-ready`
+- `recommended option is explicit; rejected options are not yet explicit`
+- `backend artifact is generated; test result is missing`
 
 ### 2. Approved Sources Table
 
@@ -79,7 +141,8 @@ State creation must:
 2. decompose it into scoped subsets
 3. assign each subset to a logical member
 4. attach approved session/url values where available
-5. mark current status of each member
+5. write each member goal as an end-state
+6. mark current status of each member as a declarative current state
 
 ## Operational Loop
 
@@ -95,6 +158,15 @@ Run the discussion system in this order:
 8. update execution state
 
 Each loop must end with an updated table set.
+
+During this loop, do not pull content work back into `oc` unless:
+
+- no approved `gpt` source can do it
+- the work is control-plane only
+- execution verification requires direct operator action
+
+During this loop, do not turn `oc -> gpt` access into background polling unless
+an explicit exception was approved for the run.
 
 ## Completion Rules
 
@@ -132,6 +204,11 @@ Treat these as failures:
 
 - no updated state table
 - prose-only progress reporting
+- `goal` written as an instruction instead of an end-state
+- `status` written as a vague label instead of a verified state
+- unnecessary `oc`-side recreation of content that should have been produced by
+  an approved `gpt` source
+- unapproved polling or repeated checking against `gpt` sources
 - weak reply with no diagnosis
 - resend with no prompt delta
 - use of unapproved source

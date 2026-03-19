@@ -17,6 +17,8 @@ Response:
 - tighten output contract
 - resend once with a narrower prompt
 - if still missing, mark blocked explicitly
+- do not convert `no reply` into polling by default; use a later one-shot check
+  unless polling was explicitly approved
 
 ### 2. Non-Structured Reply
 
@@ -31,6 +33,7 @@ Response:
 - require a table-only or section-locked format
 - resend once
 - if still weak, downgrade source quality and consider fallback source
+- prefer one-shot recovery checks over repeated polling
 
 ### 3. Runtime Block
 
@@ -44,6 +47,8 @@ Response:
 - make the blocker explicit in state
 - switch to another approved runtime path if one exists
 - do not hide the block under vague status
+- if checking is retried after a block, prefer a single explicit recheck unless
+  the run has polling approval
 
 ## Recovery Output
 

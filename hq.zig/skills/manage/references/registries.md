@@ -59,6 +59,24 @@ quality_gates
 resend_policy
 ```
 
+## Delegation Policy Registry
+
+Optional but recommended when delegation strategy matters.
+
+```text
+member
+delegation_bias
+target_share
+delegate_to
+keep_in_oc
+notes
+```
+
+- `delegation_bias`: for example `gpt-heavy`
+- `target_share`: optional operating preference such as `0.9`
+- `delegate_to`: content work that should stay in `gpt` when possible
+- `keep_in_oc`: control-plane work that must stay in `oc`
+
 ## Rule
 
 `SKILL.md` defines the structure of these registries.
