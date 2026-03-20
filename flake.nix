@@ -6,6 +6,11 @@
     # Poetry 1.8.x is required for some repos (e.g. app_toyhobby).
     nixpkgs-poetry.url = "github:NixOS/nixpkgs/nixos-24.11";
 
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
@@ -18,7 +23,8 @@
     };
   };
 
-  outputs = inputs@{ flake-parts, ... }:
+  outputs =
+    inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
@@ -28,6 +34,7 @@
       imports = [
         ./parts/upstream.nix
         ./parts/packages.nix
+        ./parts/home-manager.nix
         ./parts/opencode/default.nix
         ./parts/helix/default.nix
         ./parts/lazygit-delta/default.nix
