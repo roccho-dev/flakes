@@ -16,6 +16,8 @@ Do not guess whether the issue is:
 
 Separate those explicitly.
 
+For the exact pass/fail declarations, read `references/completion_gates.md`.
+
 ## One-Shot Rule
 
 Do not poll by default.
@@ -64,3 +66,4 @@ If normal send works but attachments do not:
 ## References
 
 - `references/runtime_recovery.md`
+- `references/completion_gates.md`

@@ -27,6 +27,7 @@ For active use, read `RUNBOOK.md` first.
 For the current accumulated knowledge, read:
 
 - `references/runtime_recovery.md`
+- `references/completion_gates.md`
 
 ## Core Rules
 
@@ -65,3 +66,4 @@ Long-term, the desired visible shape is `qjs + hq.zig`, even if
 
 - `RUNBOOK.md`
 - `references/runtime_recovery.md`
+- `references/completion_gates.md`
