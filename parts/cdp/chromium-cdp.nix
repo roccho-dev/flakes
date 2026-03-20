@@ -76,14 +76,5 @@
       packages.chromium-cdp-wsurl = chromiumCdpWsUrl;
       packages.cdp-bridge = cdpBridge;
       packages.chromium-cdp-tools = chromiumCdpTools;
-
-      apps.chromium-cdp = {
-        type = "app";
-        program = "${chromiumCdp}/bin/chromium-cdp";
-      };
-      apps.chromium-cdp-wsurl = {
-        type = "app";
-        program = "${chromiumCdpWsUrl}/bin/chromium-cdp-wsurl";
-      };
     };
 }
