@@ -3,6 +3,7 @@
   perSystem =
     { pkgs, config, ... }:
     let
+      wrappedOpencode = import ./package.nix { inherit pkgs; };
       opencodeConfig = ../../opencode.json;
 
       configVanilla =
@@ -25,7 +26,7 @@
         pkgs.runCommand "opencode-smoke"
           {
             nativeBuildInputs = [
-              pkgs.opencode
+              wrappedOpencode
               pkgs.coreutils
             ];
           }
@@ -38,11 +39,8 @@
             export XDG_STATE_HOME="$HOME/.local/state"
             mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
 
-            # Avoid global/project config merge and any network.
+            # Wrapper pins repo config and offline-safe defaults.
             cd "$TMPDIR"
-            export OPENCODE_CONFIG="${opencodeConfig}"
-            export OPENCODE_DISABLE_LSP_DOWNLOAD=true
-            export OPENCODE_DISABLE_AUTOUPDATE=true
 
             opencode --version >/dev/null
             opencode --help >/dev/null
@@ -54,7 +52,7 @@
         pkgs.runCommand "opencode-debug-lsp-entry-exists"
           {
             nativeBuildInputs = [
-              pkgs.opencode
+              wrappedOpencode
               pkgs.coreutils
             ];
           }
@@ -67,8 +65,6 @@
             export XDG_STATE_HOME="$HOME/.local/state"
             mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
 
-            export OPENCODE_DISABLE_AUTOUPDATE=true
-
             opencode debug lsp --help >/dev/null
 
             touch "$out"
@@ -78,7 +74,7 @@
         pkgs.runCommand "opencode-wrapper-env-contract"
           {
             nativeBuildInputs = [
-              config.packages.editor-tools
+              config.packages.opencode
               pkgs.bash
               pkgs.coreutils
               pkgs.gnugrep
@@ -120,7 +116,7 @@
         pkgs.runCommand "opencode-lsp-go-diagnostics"
           {
             nativeBuildInputs = [
-              pkgs.opencode
+              wrappedOpencode
               pkgs.jq
               pkgs.coreutils
               pkgs.bash
@@ -136,10 +132,6 @@
             export XDG_CACHE_HOME="$HOME/.cache"
             export XDG_STATE_HOME="$HOME/.local/state"
             mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
-
-            export OPENCODE_CONFIG="${opencodeConfig}"
-            export OPENCODE_DISABLE_LSP_DOWNLOAD=true
-            export OPENCODE_DISABLE_AUTOUPDATE=true
 
             mkdir -p "$TMPDIR/clean" "$TMPDIR/err"
 

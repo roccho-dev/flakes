@@ -1,9 +1,10 @@
 result
 result-*
-**/.zig-cache/
-**/zig-out/
 .direnv/
 .envrc
+.worktree/
 .worktrees/
+**/.zig-cache/
+**/zig-out/
 thread-artifacts/
 tools/

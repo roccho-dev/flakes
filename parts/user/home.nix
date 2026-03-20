@@ -4,6 +4,7 @@
   imports = [
     ./modules/packages.nix
     ../shell/hm.nix
+    ../opencode/hm.nix
   ];
 
   # Home Manager needs this

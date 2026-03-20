@@ -26,7 +26,18 @@
       ];
 
       imports = [
-        ./parts/default.nix
+        ./parts/upstream.nix
+        ./parts/packages.nix
+        ./parts/opencode/default.nix
+        ./parts/helix/default.nix
+        ./parts/lazygit-delta/default.nix
+        ./parts/chromedevtoolprotocol/default.nix
+        ./parts/qjs.zig/default.nix
+        ./parts/languages/default.nix
+        ./parts/repo-checks.nix
+        ./parts/tests/apps.nix
+        ./parts/tests/help-app.nix
+        ./parts/tests/lazygit-delta-test.nix
       ];
     };
 }
