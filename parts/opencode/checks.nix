@@ -74,7 +74,7 @@
         pkgs.runCommand "opencode-wrapper-env-contract"
           {
             nativeBuildInputs = [
-              config.packages.editor-tools
+              config.packages.opencode
               pkgs.bash
               pkgs.coreutils
               pkgs.gnugrep
