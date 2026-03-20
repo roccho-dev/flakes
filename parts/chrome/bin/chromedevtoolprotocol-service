@@ -1,0 +1,48 @@
+set -euo pipefail
+
+service_name="chromedevtoolprotocol-service"
+
+: "${CHROME_SERVICE_ADDR:=127.0.0.1}"
+: "${CHROME_SERVICE_PORT:=9222}"
+: "${CHROME_SERVICE_START_URL:=about:blank}"
+: "${CHROME_SERVICE_HEADLESS:=1}"
+: "${CHROME_SERVICE_PASSWORD_STORE:=}"
+: "${XDG_STATE_HOME:=$HOME/.local/state}"
+
+state_dir="$XDG_STATE_HOME/$service_name"
+runtime_profile="$state_dir/runtime/profile.current"
+pid_file="$state_dir/service.pid"
+
+mkdir -p "$state_dir"
+
+if [ ! -d "$runtime_profile" ]; then
+  chromedevtoolprotocol-service-profile-sync > /dev/null
+fi
+
+rm -rf \
+  "$runtime_profile/DevToolsActivePort" \
+  "$runtime_profile/SingletonCookie" \
+  "$runtime_profile/SingletonLock" \
+  "$runtime_profile/SingletonSocket"
+
+printf '%s\n' "$$" > "$pid_file"
+chmod 600 "$pid_file"
+
+extra=(
+  --remote-debugging-address="$CHROME_SERVICE_ADDR"
+  --remote-debugging-port="$CHROME_SERVICE_PORT"
+  --user-data-dir="$runtime_profile"
+  --no-first-run
+  --no-default-browser-check
+  --disable-dev-shm-usage
+)
+
+if [ "$CHROME_SERVICE_HEADLESS" = "1" ]; then
+  extra+=(--headless=new --disable-gpu)
+fi
+
+if [ -n "$CHROME_SERVICE_PASSWORD_STORE" ]; then
+  extra+=(--password-store="$CHROME_SERVICE_PASSWORD_STORE")
+fi
+
+exec chromium "${extra[@]}" "$CHROME_SERVICE_START_URL" "$@"

@@ -1,0 +1,118 @@
+set -euo pipefail
+
+service_name="chromedevtoolprotocol-service"
+schema_version=1
+
+: "${CHROME_SERVICE_SOURCE_PROFILE:=$HOME/.secret/hq/chromium-cdp-profile.snapshot}"
+: "${XDG_STATE_HOME:=$HOME/.local/state}"
+: "${XDG_RUNTIME_DIR:=/run/user/$(id -u)}"
+
+state_dir="$XDG_STATE_HOME/$service_name"
+runtime_root="$state_dir/runtime"
+runtime_profile="$runtime_root/profile.current"
+staging_profile="$runtime_root/profile.staging.$$"
+previous_profile="$runtime_root/profile.previous"
+sync_file="$state_dir/profile-sync.json"
+lock_dir="$XDG_RUNTIME_DIR/$service_name"
+lock_file="$lock_dir/profile.lock"
+timestamp="$(date --iso-8601=seconds)"
+
+cleanup_entries='["DevToolsActivePort","SingletonCookie","SingletonLock","SingletonSocket"]'
+
+mkdir -p "$state_dir" "$runtime_root" "$lock_dir"
+exec 9>"$lock_file"
+flock -x 9
+
+emit_json() {
+  local status="$1"
+  local reason_code="$2"
+  local source_path="$3"
+  local output_file="$4"
+
+  jq -n \
+    --argjson schema_version "$schema_version" \
+    --arg action "profile-sync" \
+    --arg status "$status" \
+    --arg reason_code "$reason_code" \
+    --arg source_path "$source_path" \
+    --arg runtime_path "$runtime_profile" \
+    --arg generated_at "$timestamp" \
+    --argjson cleanup_entries "$cleanup_entries" \
+    '{
+      schema_version: $schema_version,
+      action: $action,
+      status: $status,
+      reason_code: $reason_code,
+      source_path: $source_path,
+      runtime_path: $runtime_path,
+      source_snapshot_required: true,
+      direct_reuse: "forbidden",
+      sync_mode: "fresh-copy",
+      cleanup_entries: $cleanup_entries,
+      generated_at: $generated_at
+    }' > "$output_file"
+}
+
+fail_sync() {
+  local status="$1"
+  local reason_code="$2"
+  local exit_code="$3"
+  local source_path="$4"
+  local tmp
+
+  tmp="$(mktemp "$state_dir/profile-sync.XXXXXX")"
+  emit_json "$status" "$reason_code" "$source_path" "$tmp"
+  mv "$tmp" "$sync_file"
+  cat "$sync_file"
+  rm -rf "$staging_profile"
+  exit "$exit_code"
+}
+
+cleanup_runtime_artifacts() {
+  local dir="$1"
+
+  rm -rf \
+    "$dir/DevToolsActivePort" \
+    "$dir/SingletonCookie" \
+    "$dir/SingletonLock" \
+    "$dir/SingletonSocket"
+}
+
+source_path="$(realpath -m "$CHROME_SERVICE_SOURCE_PROFILE")"
+
+if [ ! -d "$source_path" ]; then
+  fail_sync "config-error" "SOURCE_PROFILE_MISSING" 30 "$source_path"
+fi
+
+if [ "$source_path" = "$(realpath -m "$runtime_profile")" ]; then
+  fail_sync "config-error" "DIRECT_REUSE_FORBIDDEN" 31 "$source_path"
+fi
+
+for source_lock in \
+  "$source_path/DevToolsActivePort" \
+  "$source_path/SingletonCookie" \
+  "$source_path/SingletonLock" \
+  "$source_path/SingletonSocket"
+do
+  if [ -e "$source_lock" ]; then
+    fail_sync "config-error" "SOURCE_PROFILE_BUSY" 32 "$source_path"
+  fi
+done
+
+trap 'rm -rf "$staging_profile"' EXIT
+rm -rf "$staging_profile"
+mkdir -p "$staging_profile"
+cp -a "$source_path/." "$staging_profile/"
+cleanup_runtime_artifacts "$staging_profile"
+chmod -R u=rwX,go= "$staging_profile"
+
+rm -rf "$previous_profile"
+if [ -e "$runtime_profile" ]; then
+  mv "$runtime_profile" "$previous_profile"
+fi
+mv "$staging_profile" "$runtime_profile"
+
+tmp="$(mktemp "$state_dir/profile-sync.XXXXXX")"
+emit_json "green" "OK" "$source_path" "$tmp"
+mv "$tmp" "$sync_file"
+cat "$sync_file"

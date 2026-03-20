@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source_profile_kind": "snapshot",
+  "direct_reuse": "forbidden",
+  "sync_mode": "fresh-copy",
+  "publish_mode": "atomic-rename",
+  "cleanup_entries": [
+    "DevToolsActivePort",
+    "SingletonCookie",
+    "SingletonLock",
+    "SingletonSocket"
+  ],
+  "runtime_permissions": "u=rwX,go=",
+  "source_busy_rejected": true
+}

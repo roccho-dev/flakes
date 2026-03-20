@@ -38,6 +38,7 @@
         ./parts/opencode/default.nix
         ./parts/helix/default.nix
         ./parts/lazygit-delta/default.nix
+        ./parts/chrome/default.nix
         ./parts/chromedevtoolprotocol/default.nix
         ./parts/qjs.zig/default.nix
         ./parts/languages/default.nix

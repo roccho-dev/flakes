@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "core_status_values": [
+    "green",
+    "degraded",
+    "red",
+    "config-error"
+  ],
+  "app": {
+    "chatgpt": {
+      "status_values": [
+        "green",
+        "login-required",
+        "challenge-blocked",
+        "probe-failed"
+      ]
+    }
+  },
+  "probe_failed_requires_reason_code": true,
+  "systemd_green_source": "core.status",
+  "persist_runtime_output_to_state": true
+}
