@@ -28,5 +28,5 @@ When deciding where a change belongs:
 
 - if it changes machine state, put it in `parts/os/`
 - if it changes long-lived user state, put it in `parts/user/`
-- if it changes a single-domain tool contract or package, put it next to that domain (`parts/opencode/`, `parts/helix/`, `parts/chromedevtoolprotocol/`, ...)
+- if it changes a single-domain tool contract or package, put it next to that domain (`parts/opencode/`, `parts/helix/`, `parts/cdp/`, `parts/chromedevtoolprotocol.zig/`, ...)
 - if it changes only a cross-domain public bundle such as `editor-tools` or `git-tools`, put it in `parts/packages.nix`
