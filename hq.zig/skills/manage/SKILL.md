@@ -107,6 +107,9 @@ Access from `oc` to `gpt` is controlled, not free-form.
 
 Read `references/registries.md`.
 
+When `gpt` request quality matters for execution-grade output, also read
+`references/gpt_request_contracts.md`.
+
 At minimum, runtime must maintain:
 
 - objective registry
@@ -242,3 +245,4 @@ backend path into execution.
 - `references/tables.md`
 - `references/recovery.md`
 - `references/examples.md`
+- `references/gpt_request_contracts.md`

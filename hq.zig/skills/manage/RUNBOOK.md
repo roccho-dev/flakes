@@ -27,6 +27,9 @@ Write those columns this way:
 Do not respond with free prose only.
 Use prose only after the state tables.
 
+When a run depends on high-quality downstream `gpt` outputs, read
+`references/gpt_request_contracts.md` before sending or repairing prompts.
+
 ## Delegation Rule
 
 Default operating bias is GPT-heavy.
