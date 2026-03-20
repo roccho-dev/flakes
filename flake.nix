@@ -47,6 +47,9 @@
         ./parts/tests/apps.nix
         ./parts/tests/help-app.nix
         ./parts/tests/lazygit-delta-test.nix
+        ./parts/tests/sqlite-backup-backup-api.nix
+        ./parts/tests/sqlite-backup-vacuum-into.nix
+        ./parts/tests/sqlite-backup-restore.nix
       ];
     };
 }

@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 let
   opencode = import ./package.nix { inherit pkgs; };
@@ -32,8 +32,23 @@ let
 
     exit "$rc"
   '';
+
 in
 {
+  imports = [
+    ../sqlite/backup/hm.nix
+  ];
+
+  sqlite.backup.jobs.opencode-home = {
+    enable = true;
+    dbPath = "${config.home.homeDirectory}/.local/share/opencode/opencode.db";
+    destDir = "${config.home.homeDirectory}/.local/state/opencode/backup/sqlite";
+    schedule = "daily";
+    keep = 7;
+    method = "backup-api";
+    validateMode = "quick";
+  };
+
   systemd.user.services.opencode-home = {
     Unit = {
       Description = "OpenCode server";
