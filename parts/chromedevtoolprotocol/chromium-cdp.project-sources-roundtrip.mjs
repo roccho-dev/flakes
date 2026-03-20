@@ -159,12 +159,21 @@ function extractConversationId(url) {
   return m ? m[1] : null;
 }
 
+function extractProjectId(url) {
+  const m = String(url || "").match(/\/g\/g-p-([^/]+)/);
+  return m ? m[1] : null;
+}
+
 function pickTargetByUrl(targets, url) {
   const pages = (targets || []).filter((t) => t && t.type === "page" && t.webSocketDebuggerUrl);
   const u = String(url || "");
 
   let cands = pages.filter((t) => String(t.url || "") === u);
   if (cands.length === 0) cands = pages.filter((t) => String(t.url || "").startsWith(u));
+  if (cands.length === 0) {
+    const pid = extractProjectId(u);
+    if (pid) cands = pages.filter((t) => String(t.url || "").includes(`/g/g-p-${pid}/project`));
+  }
   if (cands.length === 0) {
     const cid = extractConversationId(u);
     if (cid) cands = pages.filter((t) => String(t.url || "").includes(cid));

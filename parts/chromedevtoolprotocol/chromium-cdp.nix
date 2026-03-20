@@ -65,6 +65,7 @@
           chromiumCdp
           chromiumCdpWsUrl
           cdpBridge
+          (pkgs.lib.getBin pkgs.coreutils)
           (pkgs.lib.getBin pkgs.quickjs-ng)
         ];
       };
