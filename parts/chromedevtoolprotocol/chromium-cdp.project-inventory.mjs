@@ -222,6 +222,22 @@ function scrollToBottomExpr(rootSelector) {
   })()`;
 }
 
+function ensureProjectChatsTabExpr() {
+  return `(() => {
+    const isVisible = (el) => !!el && !el.hidden && getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden';
+    const tabs = Array.from(document.querySelectorAll('button[role="tab"]')).filter(isVisible);
+    const chats = tabs.find((b) => String(b.innerText || '').trim() === 'Chats') || null;
+    const sources = tabs.find((b) => String(b.innerText || '').trim() === 'Sources') || null;
+    if (!chats) return { ok: false, reason: 'chats_tab_not_found', has_sources: !!sources };
+    const selected = String(chats.getAttribute('aria-selected') || '') === 'true';
+    if (!selected) {
+      try { chats.scrollIntoView({ block: 'center', inline: 'center' }); } catch (_) {}
+      try { chats.click(); } catch (_) {}
+    }
+    return { ok: true, selected_before: selected, has_sources: !!sources };
+  })()`;
+}
+
 function listProjectsAndUnprojectedExpr(limitProjects, limitUnprojected) {
   const lp = Math.max(1, Math.min(200, Number(limitProjects) || 50));
   const lu = Math.max(1, Math.min(200, Number(limitUnprojected) || 40));
@@ -435,6 +451,12 @@ function main(argv) {
     const page = mkCaller(t.webSocketDebuggerUrl);
     try { page.call("Page.bringToFront", {}); } catch {}
     sleepMs(Math.max(400, args.waitMs));
+
+    // Some project tabs are left on "Sources" or another view; reselect Chats first.
+    try {
+      page.evalValue(ensureProjectChatsTabExpr(), { timeoutMs: 60000 });
+      sleepMs(Math.max(600, args.waitMs));
+    } catch {}
 
     // Project chat lists can be virtualized; scroll main to accumulate.
     let listingDetails = null;
