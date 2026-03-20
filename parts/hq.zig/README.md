@@ -2,14 +2,21 @@
 
 Single-binary Zig replacement for the non-E2E HQ path.
 
-This app depends on the `chromedevtoolprotocol.zig` module repository.
+This app lives under `parts/hq.zig` and depends on the `parts/chromedevtoolprotocol.zig` Zig module.
+
+The repo-local CDP helpers and Nix glue live under `parts/cdp`; those are support
+tools around the dependency, not the dependency itself.
+
+Several ChatGPT/HQ automation scripts still live there as pre-Zig tooling. When
+they are ported, they should land in `parts/hq.zig` unless they collapse into
+generic reusable CDP primitives.
 
 ## Module layout
 
-The build script looks for CDP in these layouts, in order:
+From `parts/hq.zig`, the build script looks for CDP in these layouts, in order:
 
 - `../chromedevtoolprotocol.zig/src/root.zig`
-- `../cdp/chromedevtoolprotocol.zig/src/root.zig`
+- `../../chromedevtoolprotocol.zig/src/root.zig`
 - `../../cdp/chromedevtoolprotocol.zig/src/root.zig`
 
 You can also override discovery explicitly:

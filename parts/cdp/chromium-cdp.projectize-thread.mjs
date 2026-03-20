@@ -13,7 +13,7 @@
 // Example
 //   nix shell .#chromium-cdp-tools
 //   export HQ_CHROME_ADDR=127.0.0.1 HQ_CHROME_PORT=9223
-//   qjs --std -m parts/chromedevtoolprotocol/chromium-cdp.projectize-thread.mjs \
+//   qjs --std -m parts/cdp/chromium-cdp.projectize-thread.mjs \
 //     --threadUrl "https://chatgpt.com/c/<thread>" \
 //     --projectId "<projectId>" \
 //     --outPath /tmp/projectize.json

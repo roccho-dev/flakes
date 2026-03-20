@@ -109,13 +109,13 @@ pub fn build(b: *std.Build) void {
 }
 
 fn resolveCdpRoot(b: *std.Build) []const u8 {
-    if (b.option([]const u8, "cdp-root", "Path to chromedevtoolprotocol.zig/src/root.zig")) |override| {
+    if (b.option([]const u8, "cdp-root", "Path to parts/chromedevtoolprotocol.zig/src/root.zig")) |override| {
         return override;
     }
 
     const candidates = [_][]const u8{
         "../chromedevtoolprotocol.zig/src/root.zig",
-        "../cdp/chromedevtoolprotocol.zig/src/root.zig",
+        "../../chromedevtoolprotocol.zig/src/root.zig",
         "../../cdp/chromedevtoolprotocol.zig/src/root.zig",
     };
 
@@ -126,7 +126,7 @@ fn resolveCdpRoot(b: *std.Build) []const u8 {
     }
 
     std.debug.panic(
-        "unable to locate chromedevtoolprotocol.zig; pass -Dcdp-root=<path> or place the repo in a supported sibling layout",
+        "unable to locate chromedevtoolprotocol.zig; pass -Dcdp-root=<path> or place the repo in a supported layout",
         .{},
     );
 }

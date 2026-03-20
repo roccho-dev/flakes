@@ -74,13 +74,13 @@ function loadJsonOrNull(path) {
 function loadThreadsConfig(argv0, overridePath) {
   const selfDir = dirname(argv0 || "");
   const repoRoot = `${selfDir}/../..`;
-  const defaultThreadsFile = `${selfDir}/../../hq.zig/templates/chatgpt/threads.json`;
+  const defaultThreadsFile = `${selfDir}/../hq.zig/templates/chatgpt/threads.json`;
 
   const chosen = overridePath || std.getenv("HQ_THREADS_FILE") || defaultThreadsFile;
   const cfg = loadJsonOrNull(chosen);
 
   if (cfg && cfg.threads && Array.isArray(cfg.threads)) {
-    const playbookRel = (cfg.playbook && cfg.playbook.path) ? String(cfg.playbook.path) : "hq.zig/docs/chatgpt_playbook.md";
+    const playbookRel = (cfg.playbook && cfg.playbook.path) ? String(cfg.playbook.path) : "parts/hq.zig/docs/chatgpt_playbook.md";
     return {
       threadsFile: chosen,
       repoRoot,
@@ -95,8 +95,8 @@ function loadThreadsConfig(argv0, overridePath) {
   return {
     threadsFile: chosen,
     repoRoot,
-    playbookRel: "hq.zig/docs/chatgpt_playbook.md",
-    playbookPath: `${repoRoot}/hq.zig/docs/chatgpt_playbook.md`,
+    playbookRel: "parts/hq.zig/docs/chatgpt_playbook.md",
+    playbookPath: `${repoRoot}/parts/hq.zig/docs/chatgpt_playbook.md`,
     threads: [
       { name: "BO_01", kind: "worker", purpose: "tests/SSOT", url: "https://chatgpt.com/c/69abc2a4-a0c4-83ab-987d-ee17d5a96473", expect: "Hybrid v2 critique (all sections) + MODEL_CONFIRMATION(Pro=YES)" },
       { name: "HQ_CDP_02", kind: "worker", purpose: "adapter/CDP", url: "https://chatgpt.com/c/69abc32d-a9a4-83a4-a665-a087ce994bc8", expect: "Hybrid v2 critique (all sections) + MODEL_CONFIRMATION(Pro=YES)" },

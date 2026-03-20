@@ -42,14 +42,14 @@ Reconciliation With MODEL_CONFIRMATION
 - If DOM `pro_model` is false/unknown, treat the worker as ineligible regardless of MODEL_CONFIRMATION.
 
 Output/Alert Contract (current PoC)
-- `parts/chromedevtoolprotocol/chromium-cdp.hq-threads.mjs`
+- `parts/cdp/chromium-cdp.hq-threads.mjs`
   - Adds `dom_model` fields to `THREADS_STATUS.json` rows.
   - Renders a `dom_model` column in `THREADS_STATUS` Markdown.
   - `--requireDomPro` exits non-zero if any *open* thread is missing/non-Pro by DOM.
   - When auto-opening a thread (cdpNew/openOrFind), emits a stderr alert line:
     `DOM_MODEL_ALERT: non-Pro or unknown model after auto-open: <url> :: <label>`
 
-- `parts/chromedevtoolprotocol/chromium-cdp.send-chatgpt.mjs`
+- `parts/cdp/chromium-cdp.send-chatgpt.mjs`
   - `--requireDomPro` fails closed if the DOM model is non-Pro/unknown.
   - Records `dom_model_preflight` in stdout JSON.
   - If `--outDir <dir>` is provided, writes:

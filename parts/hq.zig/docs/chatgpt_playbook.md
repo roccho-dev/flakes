@@ -16,13 +16,13 @@ merged into the repo with minimal human intervention.
 - Zig CLI: `hq` (operator-facing, durable state owner)
   - Runs: status/send/collect + later ui read/get
 - QJS helper (debug + status table):
-  - `parts/chromedevtoolprotocol/chromium-cdp.hq-threads.mjs`
+  - `parts/cdp/chromium-cdp.hq-threads.mjs`
 
 ## Always-Run Workflow (Operator)
 
 1) Print the thread table (copy into your report)
 
-   - `qjs --std -m parts/chromedevtoolprotocol/chromium-cdp.hq-threads.mjs --statusOnly --requireDomPro`
+   - `qjs --std -m parts/cdp/chromium-cdp.hq-threads.mjs --statusOnly --requireDomPro`
    - If it prints `MODEL_CONFIRMATION_WARN` or `DOM_MODEL_WARN`, do not proceed.
      Fix the worker thread (active model must be Pro) and ask workers to repost.
 
@@ -53,8 +53,8 @@ merged into the repo with minimal human intervention.
 - NO POLLING: do not loop "sleep and check" in orchestration.
 - Do not trust UI coordinates; prefer semantic DOM operations.
 - Never accept artifacts without `MODEL_CONFIRMATION`.
-- Keep high-conflict files single-owner per cycle (e.g. `hq.zig/build.zig`).
-- Pro gating is DOM-based (see `hq.zig/docs/dom_model_gate.md`). Do not trust worker self-report.
+- Keep high-conflict files single-owner per cycle (e.g. `parts/hq.zig/build.zig`).
+- Pro gating is DOM-based (see `parts/hq.zig/docs/dom_model_gate.md`). Do not trust worker self-report.
 
 ## MODEL_CONFIRMATION (Mandatory)
 

@@ -77,7 +77,7 @@ fn emitMentalModelBanner(io: std.Io, parsed: *const hq.common.ParsedArgs, cmd: [
     var buffer: [1024]u8 = undefined;
     var writer = std.Io.File.stderr().writer(io, &buffer);
     writer.interface.writeAll("HQ mental model: run `hq playbook`\n") catch {};
-    writer.interface.writeAll("Thread status: qjs --std -m parts/chromedevtoolprotocol/chromium-cdp.hq-threads.mjs --statusOnly\n") catch {};
+    writer.interface.writeAll("Thread status: qjs --std -m parts/cdp/chromium-cdp.hq-threads.mjs --statusOnly\n") catch {};
     writer.interface.writeAll("Worker replies must include: MODEL_CONFIRMATION: Pro=YES | MODEL=<exact UI label>\n") catch {};
     writer.interface.writeAll("(Disable this banner with --quiet)\n") catch {};
     writer.interface.flush() catch {};
