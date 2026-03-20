@@ -5,7 +5,7 @@ let
 
   nixFiles = builtins.filter (
     name:
-    dir.${name} == "regular" && lib.hasSuffix ".nix" name && name != "default.nix"
+    dir.${name} == "regular" && lib.hasSuffix ".nix" name && name != "default.nix" && name != "flake.nix"
   ) names;
 
   sorted = builtins.sort builtins.lessThan nixFiles;
