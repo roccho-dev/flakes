@@ -5,9 +5,12 @@
   ];
 
   perSystem =
-    { pkgs, ... }:
+    { pkgs, config, ... }:
     let
-      mod = import ./package.nix { inherit pkgs; };
+      mod = import ./package.nix {
+        inherit pkgs;
+        cdpBridge = config.packages.cdp-bridge;
+      };
     in
     {
       packages.chromedevtoolprotocol-service = mod.service;

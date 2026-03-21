@@ -28,7 +28,7 @@
   ];
 
   chatgptStatusValues = [
-    "green"
+    "logged-in"
     "login-required"
     "challenge-blocked"
     "probe-failed"

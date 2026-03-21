@@ -9,7 +9,7 @@
   "app": {
     "chatgpt": {
       "status_values": [
-        "green",
+        "logged-in",
         "login-required",
         "challenge-blocked",
         "probe-failed"

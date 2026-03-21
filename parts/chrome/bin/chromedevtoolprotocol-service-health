@@ -65,6 +65,16 @@ page_count=0
 generic_attachable=false
 chatgpt_target_found=false
 chatgpt_target_url=""
+chatgpt_target_ws_url=""
+chatgpt_probe_ok=false
+chatgpt_probe_ready_state=""
+chatgpt_probe_title=""
+chatgpt_probe_network_online=false
+chatgpt_probe_composer_found=false
+chatgpt_probe_login_found=false
+chatgpt_probe_captcha_found=false
+chatgpt_probe_verify_human_found=false
+chatgpt_probe_blocked_found=false
 
 if version_json="$(curl -fsS --max-time 2 "http://$CHROME_SERVICE_ADDR:$CHROME_SERVICE_PORT/json/version" 2> /dev/null)"; then
   version_ok=true
@@ -81,6 +91,7 @@ if list_json="$(curl -fsS --max-time 2 "http://$CHROME_SERVICE_ADDR:$CHROME_SERV
   if [ -n "$chatgpt_target" ]; then
     chatgpt_target_found=true
     chatgpt_target_url="$(printf '%s' "$chatgpt_target" | jq -r '.url // empty')"
+    chatgpt_target_ws_url="$(printf '%s' "$chatgpt_target" | jq -r '.webSocketDebuggerUrl // empty')"
   fi
 else
   append_error "cdp" "JSON_LIST_UNAVAILABLE" "http://$CHROME_SERVICE_ADDR:$CHROME_SERVICE_PORT/json/list"
@@ -109,8 +120,76 @@ if [ "$list_ok" != true ]; then
   chatgpt_reason_code="CDP_LIST_UNAVAILABLE"
 elif [ "$chatgpt_target_found" != true ]; then
   chatgpt_reason_code="TARGET_MISSING"
+elif [ -z "$chatgpt_target_ws_url" ]; then
+  chatgpt_reason_code="TARGET_WS_URL_MISSING"
 else
-  chatgpt_reason_code="AUTH_PROBE_NOT_IMPLEMENTED"
+  chatgpt_probe_js=$(cat <<'EOF'
+(() => {
+  const q = (selector) => document.querySelector(selector);
+  const title = document.title || '';
+  const bodyText = document.body ? (document.body.innerText || '') : '';
+  const loginText = /(log in|sign in|continue with google|continue with microsoft|continue with apple)/i.test(bodyText);
+  const challengeTitle = /(just a moment|checking your browser|attention required)/i.test(title);
+  const blockedText = challengeTitle || /(verify you are human|human verification|captcha|access denied|temporarily blocked|unusual activity)/i.test(bodyText);
+  const verifyHuman = Array.from(document.querySelectorAll('button, a, [role="button"]')).some((el) => {
+    const meta = ((el.innerText || '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('title') || '')).trim();
+    return /(verify you are human|human verification|i am human)/i.test(meta);
+  });
+  const login = !!q('input[type="password"], form[action*="login"], [href*="login"], button[data-testid*="login"]') || loginText;
+  const captcha = !!q('iframe[src*="captcha"], [class*="captcha" i], [id*="captcha" i]');
+  const composer = !!(q('#prompt-textarea') || q('textarea') || q('[contenteditable="true"]'));
+  return {
+    title: title,
+    ready_state: document.readyState,
+    network_online: navigator.onLine,
+    composer_found: composer,
+    login_found: login,
+    captcha_found: captcha,
+    verify_human_found: verifyHuman,
+    blocked_found: blockedText
+  };
+})()
+EOF
+)
+
+  probe_req="$(jq -cn --arg expr "$chatgpt_probe_js" '{ id: 1, method: "Runtime.evaluate", params: { expression: $expr, returnByValue: true, awaitPromise: true } }')"
+  if ! probe_resp="$(cdp-bridge call --ws "$chatgpt_target_ws_url" --req "$probe_req" --timeout-ms 5000 2> /dev/null)"; then
+    chatgpt_reason_code="AUTH_PROBE_TRANSPORT_FAILED"
+    append_error "app" "AUTH_PROBE_TRANSPORT_FAILED" "$chatgpt_target_url"
+  elif ! probe_value="$(printf '%s' "$probe_resp" | jq -cer '.result.result.value // empty' 2> /dev/null)"; then
+    chatgpt_reason_code="AUTH_PROBE_RESPONSE_INVALID"
+    append_error "app" "AUTH_PROBE_RESPONSE_INVALID" "$chatgpt_target_url"
+  else
+    chatgpt_probe_ok=true
+    chatgpt_probe_title="$(printf '%s' "$probe_value" | jq -r '.title // empty')"
+    chatgpt_probe_ready_state="$(printf '%s' "$probe_value" | jq -r '.ready_state // empty')"
+    chatgpt_probe_network_online="$(printf '%s' "$probe_value" | jq -r '.network_online // false')"
+    chatgpt_probe_composer_found="$(printf '%s' "$probe_value" | jq -r '.composer_found // false')"
+    chatgpt_probe_login_found="$(printf '%s' "$probe_value" | jq -r '.login_found // false')"
+    chatgpt_probe_captcha_found="$(printf '%s' "$probe_value" | jq -r '.captcha_found // false')"
+    chatgpt_probe_verify_human_found="$(printf '%s' "$probe_value" | jq -r '.verify_human_found // false')"
+    chatgpt_probe_blocked_found="$(printf '%s' "$probe_value" | jq -r '.blocked_found // false')"
+
+    if [ "$chatgpt_probe_network_online" != true ]; then
+      chatgpt_status="probe-failed"
+      chatgpt_reason_code="NETWORK_OFFLINE"
+    elif [ "$chatgpt_probe_captcha_found" = true ] || [ "$chatgpt_probe_verify_human_found" = true ] || [ "$chatgpt_probe_blocked_found" = true ]; then
+      chatgpt_status="challenge-blocked"
+      chatgpt_reason_code="CHALLENGE_DETECTED"
+    elif [ "$chatgpt_probe_login_found" = true ]; then
+      chatgpt_status="login-required"
+      chatgpt_reason_code="LOGIN_REQUIRED"
+    elif [ "$chatgpt_probe_composer_found" = true ]; then
+      chatgpt_status="logged-in"
+      chatgpt_reason_code="OK"
+    elif [ "$chatgpt_probe_ready_state" != complete ]; then
+      chatgpt_status="probe-failed"
+      chatgpt_reason_code="PAGE_NOT_READY"
+    else
+      chatgpt_status="probe-failed"
+      chatgpt_reason_code="APP_STATE_UNCERTAIN"
+    fi
+  fi
 fi
 
 recovery_eligible=false
@@ -160,6 +239,16 @@ jq -n \
   --arg chatgpt_reason_code "$chatgpt_reason_code" \
   --argjson chatgpt_target_found "$chatgpt_target_found" \
   --arg chatgpt_target_url "$chatgpt_target_url" \
+  --arg chatgpt_target_ws_url "$chatgpt_target_ws_url" \
+  --argjson chatgpt_probe_ok "$chatgpt_probe_ok" \
+  --arg chatgpt_probe_title "$chatgpt_probe_title" \
+  --arg chatgpt_probe_ready_state "$chatgpt_probe_ready_state" \
+  --argjson chatgpt_probe_network_online "$chatgpt_probe_network_online" \
+  --argjson chatgpt_probe_composer_found "$chatgpt_probe_composer_found" \
+  --argjson chatgpt_probe_login_found "$chatgpt_probe_login_found" \
+  --argjson chatgpt_probe_captcha_found "$chatgpt_probe_captcha_found" \
+  --argjson chatgpt_probe_verify_human_found "$chatgpt_probe_verify_human_found" \
+  --argjson chatgpt_probe_blocked_found "$chatgpt_probe_blocked_found" \
   --arg app_match "$CHROME_SERVICE_APP_MATCH" \
   --argjson recovery_eligible "$recovery_eligible" \
   --arg recovery_reason_code "$recovery_reason_code" \
@@ -203,7 +292,19 @@ jq -n \
         reason_code: $chatgpt_reason_code,
         match: $app_match,
         target_found: $chatgpt_target_found,
-        target_url: (if $chatgpt_target_url == "" then null else $chatgpt_target_url end)
+        target_url: (if $chatgpt_target_url == "" then null else $chatgpt_target_url end),
+        target_ws_url: (if $chatgpt_target_ws_url == "" then null else $chatgpt_target_ws_url end),
+        probe: {
+          ok: $chatgpt_probe_ok,
+          title: (if $chatgpt_probe_title == "" then null else $chatgpt_probe_title end),
+          ready_state: (if $chatgpt_probe_ready_state == "" then null else $chatgpt_probe_ready_state end),
+          network_online: $chatgpt_probe_network_online,
+          composer_found: $chatgpt_probe_composer_found,
+          login_found: $chatgpt_probe_login_found,
+          captcha_found: $chatgpt_probe_captcha_found,
+          verify_human_found: $chatgpt_probe_verify_human_found,
+          blocked_found: $chatgpt_probe_blocked_found
+        }
       }
     },
     recovery: {

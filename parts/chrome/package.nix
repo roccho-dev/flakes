@@ -1,4 +1,4 @@
-{ pkgs }:
+{ pkgs, cdpBridge }:
 let
   contract = import ./lib.nix;
 
@@ -25,6 +25,7 @@ let
   health = pkgs.writeShellApplication {
     name = "chromedevtoolprotocol-service-health";
     runtimeInputs = with pkgs; [
+      cdpBridge
       coreutils
       curl
       jq

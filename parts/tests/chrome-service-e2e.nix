@@ -14,6 +14,7 @@
             pkgs.coreutils
             pkgs.curl
             pkgs.jq
+            pkgs.python3
             pkgs.procps
             pkgs.systemd
             pkgs.util-linux
@@ -26,6 +27,7 @@
 
       profileSync = mkTest "test-chrome-service-profile-sync-e2e" "profile-sync-e2e.sh";
       runtime = mkTest "test-chrome-service-runtime-e2e" "runtime-e2e.sh";
+      authState = mkTest "test-chrome-service-auth-state-e2e" "auth-state-e2e.sh";
       recoverGate = mkTest "test-chrome-service-recover-gate-e2e" "recover-gate-e2e.sh";
       systemdUser = mkTest "test-chrome-service-systemd-user-e2e" "systemd-user-e2e.sh";
     in
@@ -42,6 +44,12 @@
         meta.description = "E2E coverage for copied-profile launch and health";
       };
 
+      apps.test-chrome-service-auth-state-e2e = {
+        type = "app";
+        program = "${authState}/bin/test-chrome-service-auth-state-e2e";
+        meta.description = "E2E coverage for app auth-state probing";
+      };
+
       apps.test-chrome-service-recover-gate-e2e = {
         type = "app";
         program = "${recoverGate}/bin/test-chrome-service-recover-gate-e2e";
@@ -56,6 +64,7 @@
 
       packages.test-chrome-service-profile-sync-e2e = profileSync;
       packages.test-chrome-service-runtime-e2e = runtime;
+      packages.test-chrome-service-auth-state-e2e = authState;
       packages.test-chrome-service-recover-gate-e2e = recoverGate;
       packages.test-chrome-service-systemd-user-e2e = systemdUser;
     };

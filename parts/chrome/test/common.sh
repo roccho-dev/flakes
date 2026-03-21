@@ -26,6 +26,7 @@ setup_test_env() {
 }
 
 cleanup_test_env() {
+  stop_fixture_server
   stop_service
   if [ -n "${TMP_ROOT:-}" ] && [ -d "$TMP_ROOT" ]; then
     rm -rf "$TMP_ROOT"
@@ -37,19 +38,29 @@ make_source_snapshot() {
   mkdir -p "$CHROME_SERVICE_SOURCE_PROFILE"
 }
 
-choose_port() {
+choose_named_port() {
+  local var_name="$1"
   local port
   local attempt
 
   for attempt in $(seq 1 50); do
     port=$((20000 + RANDOM % 20000))
     if ! curl -fsS --max-time 1 "http://127.0.0.1:$port/json/version" > /dev/null 2>&1; then
-      export CHROME_SERVICE_PORT="$port"
+      printf -v "$var_name" '%s' "$port"
+      export "$var_name"
       return 0
     fi
   done
 
   fail "unable to find an unused localhost port"
+}
+
+choose_port() {
+  choose_named_port CHROME_SERVICE_PORT
+}
+
+choose_http_port() {
+  choose_named_port HTTP_PORT
 }
 
 run_health_capture() {
@@ -103,6 +114,33 @@ stop_service() {
   fi
 
   unset SERVICE_PID || true
+}
+
+start_fixture_server() {
+  local root="$1"
+
+  choose_http_port
+  python3 -m http.server "$HTTP_PORT" --bind 127.0.0.1 --directory "$root" > "$TMP_ROOT/http.stdout" 2> "$TMP_ROOT/http.stderr" &
+  HTTP_PID=$!
+  export HTTP_PID
+
+  for _ in $(seq 1 20); do
+    if curl -fsS --max-time 1 "http://127.0.0.1:$HTTP_PORT/" > /dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+
+  fail "fixture server did not start"
+}
+
+stop_fixture_server() {
+  if [ -n "${HTTP_PID:-}" ] && kill -0 "$HTTP_PID" 2> /dev/null; then
+    kill "$HTTP_PID" 2> /dev/null || true
+    wait "$HTTP_PID" 2> /dev/null || true
+  fi
+
+  unset HTTP_PID || true
 }
 
 wait_for_core_status() {

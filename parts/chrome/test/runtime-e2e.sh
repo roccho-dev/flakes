@@ -19,7 +19,8 @@ jq -e '.core.cdp.version_ok == true and .core.cdp.list_ok == true' > /dev/null <
 jq -e '.core.target.generic_attachable == true' > /dev/null <<<"$HEALTH_JSON"
 jq -e '.core.process.running == true' > /dev/null <<<"$HEALTH_JSON"
 jq -e '.app.chatgpt.status == "probe-failed"' > /dev/null <<<"$HEALTH_JSON"
-jq -e '.app.chatgpt.reason_code == "AUTH_PROBE_NOT_IMPLEMENTED"' > /dev/null <<<"$HEALTH_JSON"
+jq -e '.app.chatgpt.reason_code == "APP_STATE_UNCERTAIN"' > /dev/null <<<"$HEALTH_JSON"
+jq -e '.app.chatgpt.probe.ok == true' > /dev/null <<<"$HEALTH_JSON"
 jq -e '.recovery.eligible == false and .recovery.reason_code == "CORE_GREEN"' > /dev/null <<<"$HEALTH_JSON"
 
 stop_service
