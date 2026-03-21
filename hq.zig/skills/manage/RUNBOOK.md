@@ -88,6 +88,15 @@ Access from `oc` to approved `gpt` sources should follow these rules:
 - when per-source content matters, materialize a source report table instead of
   returning merge-only reporting
 
+If polling is approved for the run, use `references/polling_contracts.md` and
+record poll scope, success condition, cadence, cap, and stop conditions in
+runtime state.
+
+If target sessions and downstream local confirmation are in scope, also read:
+
+- `references/target_session_contracts.md`
+- `references/downstream_local_confirm_contracts.md`
+
 ## Re-entry Rule
 
 If memory is missing, reconstruct runtime state before doing anything else.
@@ -220,6 +229,13 @@ Decision is complete only when:
 ### Execution complete
 
 Execution is complete only when at least one backend path has actually run.
+
+If a downstream local confirm stream exists for the managed scope, do not treat
+upstream self-check as completion.
+
+In that case, execution is complete only when downstream local confirmation has
+returned local green for the intended scope, or an explicit scoped gate decision
+has locked the remaining work as intentionally deferred.
 
 ## Source Control Rule
 
