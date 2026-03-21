@@ -7,7 +7,7 @@ Layered Nix repo for machine substrate, persistent user state, and reusable tool
 - `parts/os/`: machine substrate
 - `parts/user/`: persistent user layer
 - `parts/opencode/`, `parts/helix/`, `parts/languages/`: primitive and domain contracts
-- `parts/packages.nix`: assembles end-user entrypoints such as `editor-tools` and `git-tools`
+- `parts/packages.nix`: thin root assembler for cross-domain bundles such as `editor-tools` and `git-tools`
 
 See `docs/architecture/layers.md` for the intended boundaries.
 
@@ -57,7 +57,9 @@ nix shell .#editor-tools -c opencode --version
 
 - `opencode.json`: Minimal vanilla config (schema only)
 - `flake.nix`: flake-parts setup (no devShells)
-- `parts/packages.nix`: assembles end-user package entrypoints
+- `parts/packages.nix`: thin root bundle assembler for public cross-domain entrypoints
+- `parts/opencode/default.nix`: owns `packages.opencode` and opencode checks
+- `parts/helix/default.nix`: owns `packages.hx` and helix generation/checks
 - `parts/opencode/package.nix`: shared wrapped `opencode` package used by shell and Home Manager
 - `parts/languages/*.nix`: Language tooling parts (v1 contract)
 

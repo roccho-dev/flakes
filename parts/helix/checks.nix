@@ -35,7 +35,7 @@
             nativeBuildInputs = lib.unique (
               config.helix.requiredPkgs
               ++ [
-                config.packages.editor-tools
+                config.packages.hx
                 pkgs.bash
                 pkgs.gnused
               ]
@@ -56,7 +56,7 @@
         pkgs.runCommand "hx-wrapper-injects-languages"
           {
             nativeBuildInputs = [
-              config.packages.editor-tools
+              config.packages.hx
               pkgs.coreutils
             ];
           }

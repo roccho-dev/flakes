@@ -20,13 +20,33 @@
         "type": "github"
       }
     },
+    "home-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1773962693,
+        "narHash": "sha256-nf9pgktDE4E2TCavUT1vh3Nd/tfKixL1BK6P32Zp3hI=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "9d3c1d636e7b8ab10f357cd9bee653cd400437de",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1772433332,
-        "narHash": "sha256-izhTDFKsg6KeVBxJS9EblGeQ8y+O8eCa6RcW874vxEc=",
+        "lastModified": 1773821835,
+        "narHash": "sha256-TJ3lSQtW0E2JrznGVm8hOQGVpXjJyXY2guAxku2O9A4=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "cf59864ef8aa2e178cccedbe2c178185b0365705",
+        "rev": "b40629efe5d6ec48dd1efba650c797ddbd39ace0",
         "type": "github"
       },
       "original": {
@@ -55,6 +75,7 @@
     "root": {
       "inputs": {
         "flake-parts": "flake-parts",
+        "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
         "nixpkgs-poetry": "nixpkgs-poetry",
         "upstream": "upstream"

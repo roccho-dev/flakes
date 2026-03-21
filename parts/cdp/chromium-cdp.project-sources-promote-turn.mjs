@@ -29,7 +29,7 @@ import {
 
 function usage() {
   std.err.puts(
-    "usage: qjs --std -m chromium-cdp.project-sources-promote-turn.mjs --url <thread-url> [--needle <s>] [--latest] [--addr 127.0.0.1] [--port 9222] [--waitMs 800] [--timeoutMs 180000]\n",
+    "usage: qjs --std -m chromium-cdp.project-sources-promote-turn.mjs --url <thread-url> [--needle <s>] [--latest] [--role assistant|user] [--addr 127.0.0.1] [--port 9222] [--waitMs 800] [--timeoutMs 180000]\n",
   );
   std.err.flush();
 }
@@ -41,6 +41,7 @@ function parseArgs(argv) {
     url: null,
     needle: null,
     latest: false,
+    role: "assistant",
     waitMs: 800,
     timeoutMs: 180000,
   };
@@ -52,6 +53,11 @@ function parseArgs(argv) {
     else if (a === "--url" && i + 1 < argv.length) out.url = argv[++i];
     else if (a === "--needle" && i + 1 < argv.length) out.needle = argv[++i];
     else if (a === "--latest") out.latest = true;
+    else if (a === "--role" && i + 1 < argv.length) {
+      const v = String(argv[++i] || "").trim().toLowerCase();
+      if (v === "assistant" || v === "user") out.role = v;
+      else return null;
+    }
     else if (a === "--waitMs" && i + 1 < argv.length) out.waitMs = Number(argv[++i]) || out.waitMs;
     else if (a === "--timeoutMs" && i + 1 < argv.length) out.timeoutMs = Number(argv[++i]) || out.timeoutMs;
     else if (a === "-h" || a === "--help") return null;
@@ -128,19 +134,21 @@ function mouseClick(call, x, y) {
   call("Input.dispatchMouseEvent", { type: "mouseReleased", ...pt });
 }
 
-function assistantSnapshotExpr(needle, latest) {
+function roleSnapshotExpr(role, needle, latest) {
+  const r = JSON.stringify(String(role || "assistant"));
   const n = JSON.stringify(String(needle || ""));
   const l = latest ? "true" : "false";
   return `(() => {
+    const role = ${r};
     const needle = ${n};
     const latest = ${l};
     const stopSel = 'button[data-testid="stop-button"],button[aria-label="Stop generating"],button[aria-label="Stop streaming"],button[aria-label="Stop"],button[aria-label="停止"]';
     const generating = !!document.querySelector(stopSel);
-    const assistants = Array.from(document.querySelectorAll('[data-message-author-role="assistant"]'));
+    const turns = Array.from(document.querySelectorAll('[data-message-author-role]')).filter((el) => String(el.getAttribute('data-message-author-role') || '') === role);
 
     let matchText = '';
-    for (let i = assistants.length - 1; i >= 0; i--) {
-      const el = assistants[i];
+    for (let i = turns.length - 1; i >= 0; i--) {
+      const el = turns[i];
       const txt = el ? String(el.textContent || el.innerText || '') : '';
       if (latest) {
         if (txt && txt.trim().length) { matchText = txt; break; }
@@ -152,34 +160,36 @@ function assistantSnapshotExpr(needle, latest) {
     const tailMax = 4096;
     const tail = matchText.length > tailMax ? matchText.slice(matchText.length - tailMax) : matchText;
     const has = latest ? !!matchText : (needle ? matchText.includes(needle) : false);
-    return { generating, assistant_count: assistants.length, has, match_tail: tail };
+    return { generating, role, turn_count: turns.length, has, match_tail: tail };
   })()`;
 }
 
-function waitForAssistant(thread, needle, latest, timeoutMs) {
+function waitForRole(thread, role, needle, latest, timeoutMs) {
   const timeout = Math.max(0, Number(timeoutMs) || 0);
   const start = Date.now();
   let last = null;
   while (Date.now() - start < timeout) {
-    last = thread.evalValue(assistantSnapshotExpr(needle, latest), { timeoutMs: 60000 }) || null;
+    last = thread.evalValue(roleSnapshotExpr(role, needle, latest), { timeoutMs: 60000 }) || null;
     if (last && !last.generating && last.has) return { ok: true, timed_out: false, last };
     sleepMs(700);
   }
   return { ok: false, timed_out: true, last };
 }
 
-function clickPromoteTurnExpr(needle, latest, timeoutMs) {
+function clickPromoteTurnExpr(role, needle, latest, timeoutMs) {
+  const r = JSON.stringify(String(role || "assistant"));
   const n = JSON.stringify(String(needle || ""));
   const l = latest ? "true" : "false";
   const ms = Math.max(0, Number(timeoutMs) || 0);
   return `(() => new Promise((resolve) => {
+    const role = ${r};
     const needle = ${n};
     const latest = ${l};
     const isVisible = (el) => !!el && !el.hidden && getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden';
-    const assistants = Array.from(document.querySelectorAll('[data-message-author-role="assistant"]'));
-    const pickAssistant = () => {
-      for (let i = assistants.length - 1; i >= 0; i--) {
-        const el = assistants[i];
+    const turns = Array.from(document.querySelectorAll('[data-message-author-role]')).filter((el) => String(el.getAttribute('data-message-author-role') || '') === role);
+    const pickTurn = () => {
+      for (let i = turns.length - 1; i >= 0; i--) {
+        const el = turns[i];
         const txt = String(el && (el.textContent || el.innerText || '') || '');
         if (latest) {
           if (txt.trim().length) return el;
@@ -189,8 +199,8 @@ function clickPromoteTurnExpr(needle, latest, timeoutMs) {
       }
       return null;
     };
-    const a = pickAssistant();
-    if (!a) return resolve({ ok: false, reason: 'assistant_not_found' });
+    const a = pickTurn();
+    if (!a) return resolve({ ok: false, reason: 'turn_not_found', role });
     const turn = a.closest('[data-testid^="conversation-turn-"]');
     const btn = turn ? turn.querySelector('button[data-testid="project-save-turn-action-button"]') : null;
     if (!btn) return resolve({ ok: false, reason: 'promote_button_not_found' });
@@ -258,8 +268,8 @@ function main(argv) {
   try { thread.call("Page.bringToFront", {}); } catch {}
   sleepMs(args.waitMs);
 
-  const waited = waitForAssistant(thread, args.needle, args.latest, args.timeoutMs);
-  const promote = thread.evalValue(clickPromoteTurnExpr(args.needle, args.latest, 60000), {
+  const waited = waitForRole(thread, args.role, args.needle, args.latest, args.timeoutMs);
+  const promote = thread.evalValue(clickPromoteTurnExpr(args.role, args.needle, args.latest, 60000), {
     awaitPromise: true,
     timeoutMs: 70000,
   });
@@ -272,6 +282,7 @@ function main(argv) {
     url: args.url,
     needle: args.needle,
     latest: !!args.latest,
+    role: args.role,
     target: { id: target.id, title: target.title, url: target.url },
     waited,
     promote,

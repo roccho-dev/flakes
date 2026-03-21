@@ -6,6 +6,11 @@
     # Poetry 1.8.x is required for some repos (e.g. app_toyhobby).
     nixpkgs-poetry.url = "github:NixOS/nixpkgs/nixos-24.11";
 
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
@@ -18,7 +23,8 @@
     };
   };
 
-  outputs = inputs@{ flake-parts, ... }:
+  outputs =
+    inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
@@ -26,28 +32,24 @@
       ];
 
       imports = [
-        ./parts/default.nix
-
+        ./parts/upstream.nix
         ./parts/packages.nix
+        ./parts/home-manager.nix
+        ./parts/opencode/default.nix
+        ./parts/helix/default.nix
+        ./parts/lazygit-delta/default.nix
+        ./parts/cdp/default.nix
+        ./parts/chromedevtoolprotocol.zig/default.nix
+        ./parts/hq.zig/default.nix
+        ./parts/qjs.zig/default.nix
+        ./parts/languages/default.nix
         ./parts/repo-checks.nix
         ./parts/tests/apps.nix
         ./parts/tests/help-app.nix
         ./parts/tests/lazygit-delta-test.nix
-
-        ./parts/opencode/checks.nix
-
-        ./parts/helix/contract.nix
-        ./parts/helix/gen.nix
-        ./parts/helix/checks.nix
-
-        ./parts/languages/python.nix
-        ./parts/languages/bun.nix
-        ./parts/languages/rust.nix
-        ./parts/languages/go.nix
-        ./parts/languages/zig.nix
-        ./parts/languages/nix.nix
-        ./parts/languages/cue.nix
-        ./parts/languages/contract.nix
+        ./parts/tests/sqlite-backup-backup-api.nix
+        ./parts/tests/sqlite-backup-vacuum-into.nix
+        ./parts/tests/sqlite-backup-restore.nix
       ];
     };
 }
