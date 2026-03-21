@@ -12,12 +12,17 @@ make_seed_profile
 make_source_snapshot
 export CHROME_SERVICE_PUBLISHED_SNAPSHOT="$TMP_ROOT/published-snapshot"
 export CHROME_SERVICE_SOURCE_PROFILE="$TMP_ROOT/source-profile"
+export CHROME_SERVICE_BOOTSTRAP_UNIT="chrome-bootstrap-guard-$$"
+export CHROME_SERVICE_BOOTSTRAP_RUN_DIR="$TMP_ROOT/bootstrap-run"
+export CHROME_SERVICE_BOOTSTRAP_PORT="39223"
+export CHROME_SERVICE_BOOTSTRAP_VNC_PORT="39591"
+export CHROME_SERVICE_BOOTSTRAP_DISPLAY=":177"
 choose_port
 start_service
 wait_for_core_status green 60
 
 set +e
-bootstrap_output="$(chromedevtoolprotocol-service-profile-bootstrap 2>&1)"
+bootstrap_output="$(chromedevtoolprotocol-service-profile-bootstrap start 2>&1)"
 bootstrap_rc=$?
 set -e
 

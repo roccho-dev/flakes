@@ -1,5 +1,6 @@
 {
   pkgs,
+  chromiumCdp ? pkgs.writeShellScriptBin "chromium-cdp" "exec chromium \"$@\"",
   cdpBridge ? pkgs.stdenv.mkDerivation {
     pname = "cdp-bridge";
     version = "0.1.0";
@@ -21,9 +22,18 @@ let
   profileBootstrap = pkgs.writeShellApplication {
     name = "chromedevtoolprotocol-service-profile-bootstrap";
     runtimeInputs = with pkgs; [
-      chromium
+      bash
       coreutils
+      curl
+      jq
+      chromiumCdp
+      health
+      profilePublish
+      systemd
       util-linux
+      x11vnc
+      xdpyinfo
+      xorg-server
     ];
     text = builtins.readFile ./bin/chromedevtoolprotocol-service-profile-bootstrap;
   };

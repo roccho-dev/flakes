@@ -10,6 +10,7 @@
       mod = import ./package.nix {
         inherit pkgs;
         cdpBridge = config.packages.cdp-bridge;
+        chromiumCdp = config.packages.chromium-cdp;
       };
     in
     {

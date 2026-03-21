@@ -18,6 +18,7 @@
             pkgs.procps
             pkgs.systemd
             pkgs.util-linux
+            pkgs.xdpyinfo
           ];
           text = ''
             export CHROME_SERVICE_TEST_DIR=${testDir}
@@ -26,6 +27,7 @@
         };
 
       profileSync = mkTest "test-chrome-service-profile-sync-e2e" "profile-sync-e2e.sh";
+      profileBootstrap = mkTest "test-chrome-service-profile-bootstrap-smoke-e2e" "profile-bootstrap-smoke-e2e.sh";
       profilePublish = mkTest "test-chrome-service-profile-publish-e2e" "profile-publish-e2e.sh";
       profileStatus = mkTest "test-chrome-service-profile-status-e2e" "profile-status-e2e.sh";
       profileStatusRepeat = mkTest "test-chrome-service-profile-status-repeat-e2e" "profile-status-repeat-e2e.sh";
@@ -53,6 +55,12 @@
         type = "app";
         program = "${profilePublish}/bin/test-chrome-service-profile-publish-e2e";
         meta.description = "E2E coverage for seed-to-snapshot publish";
+      };
+
+      apps.test-chrome-service-profile-bootstrap-smoke-e2e = {
+        type = "app";
+        program = "${profileBootstrap}/bin/test-chrome-service-profile-bootstrap-smoke-e2e";
+        meta.description = "Smoke coverage for transient headful bootstrap";
       };
 
       apps.test-chrome-service-profile-status-e2e = {
@@ -98,6 +106,7 @@
       };
 
       packages.test-chrome-service-profile-sync-e2e = profileSync;
+      packages.test-chrome-service-profile-bootstrap-smoke-e2e = profileBootstrap;
       packages.test-chrome-service-profile-publish-e2e = profilePublish;
       packages.test-chrome-service-profile-status-e2e = profileStatus;
       packages.test-chrome-service-profile-status-repeat-e2e = profileStatusRepeat;
