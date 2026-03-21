@@ -55,3 +55,7 @@ The overall system is not done until:
 - lock-now vs defer is explicit
 - main objections are recorded
 - at least one backend path executes successfully
+
+## Next Entry Point
+
+- Read `principles/index.md`.
