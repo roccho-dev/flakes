@@ -86,3 +86,7 @@ claim | member/url | role | supports what | does NOT support | limitation/counte
 ```text
 claim | evidence status | can lock now? | cheapest next test | owner
 ```
+
+## Next Entry Point
+
+- Read `recovery.md`.

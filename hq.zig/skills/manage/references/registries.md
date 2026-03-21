@@ -81,3 +81,7 @@ notes
 
 `SKILL.md` defines the structure of these registries.
 The registries carry live values.
+
+## Next Entry Point
+
+- Read `tables.md`.

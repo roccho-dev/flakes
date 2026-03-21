@@ -168,3 +168,7 @@ ARTIFACT CONTRACT
 - patch lineage matters
 - `oc` handoff needs to be low-friction
 - the run may need to resume after memory loss
+
+## Next Entry Point
+
+- Read `principles/index.md`.

@@ -38,13 +38,18 @@
         ./parts/opencode/default.nix
         ./parts/helix/default.nix
         ./parts/lazygit-delta/default.nix
-        ./parts/chromedevtoolprotocol/default.nix
+        ./parts/cdp/default.nix
+        ./parts/chromedevtoolprotocol.zig/default.nix
+        ./parts/hq.zig/default.nix
         ./parts/qjs.zig/default.nix
         ./parts/languages/default.nix
         ./parts/repo-checks.nix
         ./parts/tests/apps.nix
         ./parts/tests/help-app.nix
         ./parts/tests/lazygit-delta-test.nix
+        ./parts/tests/sqlite-backup-backup-api.nix
+        ./parts/tests/sqlite-backup-vacuum-into.nix
+        ./parts/tests/sqlite-backup-restore.nix
       ];
     };
 }
