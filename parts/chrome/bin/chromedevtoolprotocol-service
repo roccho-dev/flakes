@@ -1,0 +1,75 @@
+set -euo pipefail
+
+service_name="chromedevtoolprotocol-service"
+
+: "${CHROME_SERVICE_ADDR:=127.0.0.1}"
+: "${CHROME_SERVICE_PORT:=9222}"
+: "${CHROME_SERVICE_START_URL:=about:blank}"
+: "${CHROME_SERVICE_HEADLESS:=1}"
+: "${CHROME_SERVICE_PASSWORD_STORE:=basic}"
+: "${CHROME_SERVICE_DISABLE_AUTOMATION:=1}"
+: "${CHROME_SERVICE_SPOOF_USER_AGENT:=1}"
+: "${CHROME_SERVICE_USER_AGENT:=}"
+: "${CHROME_SERVICE_PUBLISHED_SNAPSHOT:=${CHROME_SERVICE_SOURCE_PROFILE:-$HOME/.secret/hq/chromium-cdp-profile.snapshot}}"
+: "${XDG_STATE_HOME:=$HOME/.local/state}"
+
+state_dir="$XDG_STATE_HOME/$service_name"
+runtime_profile="$state_dir/runtime/profile.current"
+pid_file="$state_dir/service.pid"
+guard_dir="$(dirname "$CHROME_SERVICE_PUBLISHED_SNAPSHOT")"
+guard_file="$guard_dir/.${service_name}.session.lock"
+
+mkdir -p "$state_dir" "$guard_dir"
+exec 8>"$guard_file"
+if ! flock -n 8; then
+  printf '%s\n' "SINGLE_SESSION_LOCKED" >&2
+  exit 42
+fi
+
+if [ ! -d "$runtime_profile" ]; then
+  chromedevtoolprotocol-service-profile-sync > /dev/null
+fi
+
+rm -rf \
+  "$runtime_profile/DevToolsActivePort" \
+  "$runtime_profile/SingletonCookie" \
+  "$runtime_profile/SingletonLock" \
+  "$runtime_profile/SingletonSocket"
+
+printf '%s\n' "$$" > "$pid_file"
+chmod 600 "$pid_file"
+
+extra=(
+  --remote-debugging-address="$CHROME_SERVICE_ADDR"
+  --remote-debugging-port="$CHROME_SERVICE_PORT"
+  --user-data-dir="$runtime_profile"
+  --no-first-run
+  --no-default-browser-check
+  --disable-dev-shm-usage
+)
+
+if [ "$CHROME_SERVICE_HEADLESS" = "1" ]; then
+  extra+=(--headless=new --disable-gpu)
+fi
+
+if [ "$CHROME_SERVICE_DISABLE_AUTOMATION" = "1" ]; then
+  extra+=(--disable-blink-features=AutomationControlled)
+fi
+
+if [ "$CHROME_SERVICE_SPOOF_USER_AGENT" = "1" ] && [ -z "$CHROME_SERVICE_USER_AGENT" ]; then
+  chrome_version="$(chromium --product-version 2> /dev/null || true)"
+  if [ -z "$chrome_version" ]; then
+    chrome_version="146.0.0.0"
+  fi
+  CHROME_SERVICE_USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chrome_version} Safari/537.36"
+fi
+
+if [ -n "$CHROME_SERVICE_PASSWORD_STORE" ]; then
+  extra+=(--password-store="$CHROME_SERVICE_PASSWORD_STORE")
+fi
+
+if [ -n "$CHROME_SERVICE_USER_AGENT" ]; then
+  extra+=(--user-agent="$CHROME_SERVICE_USER_AGENT")
+fi
+
+exec chromium "${extra[@]}" "$CHROME_SERVICE_START_URL" "$@"

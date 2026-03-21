@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "seed_profile_kind": "automation-headful-seed",
+  "published_snapshot_kind": "published-auth-snapshot",
+  "source_profile_kind": "snapshot",
+  "runtime_profile_kind": "service-runtime-copy",
+  "direct_reuse": "forbidden",
+  "bootstrap_mode": "manual-login-in-browser",
+  "sync_mode": "fresh-copy",
+  "publish_mode": "atomic-rename",
+  "source_chain": [
+    "seed-profile",
+    "published-snapshot",
+    "runtime-copy"
+  ],
+  "runtime_promote_to_snapshot": false,
+  "seed_promote_to_snapshot": true,
+  "cleanup_entries": [
+    "DevToolsActivePort",
+    "SingletonCookie",
+    "SingletonLock",
+    "SingletonSocket"
+  ],
+  "runtime_permissions": "u=rwX,go=",
+  "source_busy_rejected": true
+}

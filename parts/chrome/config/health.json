@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "core_status_values": [
+    "green",
+    "degraded",
+    "red",
+    "config-error"
+  ],
+  "app": {
+    "chatgpt": {
+      "status_values": [
+        "logged-in",
+        "login-required",
+        "challenge-blocked",
+        "probe-failed"
+      ]
+    }
+  },
+  "probe_stratification": {
+    "systemd_timer_scope": "core",
+    "app_probe_scope": "app"
+  },
+  "cooldown": {
+    "login_required_seconds": 300,
+    "challenge_blocked_seconds": 3600
+  },
+  "probe_failed_requires_reason_code": true,
+  "systemd_green_source": "core.status",
+  "persist_runtime_output_to_state": true
+}
