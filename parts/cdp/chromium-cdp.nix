@@ -1,18 +1,22 @@
 { ... }:
 {
   perSystem =
-    { pkgs, ... }:
+    { pkgs, config, ... }:
     let
       chromiumPkg = pkgs.chromium;
+      zigForCdp = config.packages."zig-0_16-tooling" or pkgs.zig;
 
       cdpBridge = pkgs.stdenv.mkDerivation {
         pname = "cdp-bridge";
         version = "0.1.0";
         src = ./cdp-bridge.zig;
         dontUnpack = true;
-        nativeBuildInputs = [ pkgs.zig ];
+        nativeBuildInputs = [ zigForCdp ];
         buildPhase = ''
           runHook preBuild
+          export HOME="$TMPDIR/home"
+          export ZIG_GLOBAL_CACHE_DIR="$TMPDIR/zig-cache"
+          mkdir -p "$HOME" "$ZIG_GLOBAL_CACHE_DIR"
           mkdir -p "$out/bin"
           zig build-exe -O ReleaseSafe -fstrip -femit-bin="$out/bin/cdp-bridge" "$src"
           runHook postBuild

@@ -9,44 +9,40 @@ const WsUrl = struct {
     path: []const u8,
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
-
-    const argv = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, argv);
+pub fn main(init: std.process.Init) !void {
+    const allocator = init.gpa;
+    const io = init.io;
+    const argv = try init.minimal.args.toSlice(init.arena.allocator());
 
     if (argv.len < 2) {
-        try usage();
+        try usage(io);
         return;
     }
 
     const cmd = argv[1];
     if (std.mem.eql(u8, cmd, "version")) {
         const opts = try parseAddrPort(argv, 2);
-        const body = try httpRequest(allocator, opts.addr, opts.port, "GET", "/json/version");
+        const body = try httpRequest(io, allocator, opts.addr, opts.port, "GET", "/json/version");
         defer allocator.free(body);
-        try writeJsonOrString(body);
+        try writeJsonOrString(io, body);
         return;
     }
 
     if (std.mem.eql(u8, cmd, "wsurl")) {
         const opts = try parseAddrPort(argv, 2);
-        const body = try httpRequest(allocator, opts.addr, opts.port, "GET", "/json/version");
+        const body = try httpRequest(io, allocator, opts.addr, opts.port, "GET", "/json/version");
         defer allocator.free(body);
         const ws = try extractJsonStringField(allocator, body, "webSocketDebuggerUrl");
         defer allocator.free(ws);
-        const out = std.fs.File.stdout().deprecatedWriter();
-        try out.print("{s}\n", .{ws});
+        try writeStdoutLine(io, ws);
         return;
     }
 
     if (std.mem.eql(u8, cmd, "list")) {
         const opts = try parseAddrPort(argv, 2);
-        const body = try httpRequest(allocator, opts.addr, opts.port, "GET", "/json/list");
+        const body = try httpRequest(io, allocator, opts.addr, opts.port, "GET", "/json/list");
         defer allocator.free(body);
-        try writeJsonOrString(body);
+        try writeJsonOrString(io, body);
         return;
     }
 
@@ -55,76 +51,74 @@ pub fn main() !void {
         const url = try parseFlagValue(argv, 2, "--url") orelse "about:blank";
         const path = try buildNewPath(allocator, url);
         defer allocator.free(path);
-        const body = try httpRequest(allocator, opts.addr, opts.port, "PUT", path);
+        const body = try httpRequest(io, allocator, opts.addr, opts.port, "PUT", path);
         defer allocator.free(body);
-        try writeJsonOrString(body);
+        try writeJsonOrString(io, body);
         return;
     }
 
     if (std.mem.eql(u8, cmd, "close")) {
         const opts = try parseAddrPort(argv, 2);
         const id = try parseFlagValue(argv, 2, "--id") orelse {
-            try die("missing: --id");
+            try die(io, "missing: --id");
             return;
         };
         const path = try std.fmt.allocPrint(allocator, "/json/close/{s}", .{id});
         defer allocator.free(path);
-        const body = try httpRequest(allocator, opts.addr, opts.port, "PUT", path);
+        const body = try httpRequest(io, allocator, opts.addr, opts.port, "PUT", path);
         defer allocator.free(body);
-        try writeJsonOrString(body);
+        try writeJsonOrString(io, body);
         return;
     }
 
     if (std.mem.eql(u8, cmd, "call")) {
         const ws_url = try parseFlagValue(argv, 2, "--ws") orelse {
-            try die("missing: --ws");
+            try die(io, "missing: --ws");
             return;
         };
         const req = try parseFlagValue(argv, 2, "--req") orelse {
-            try die("missing: --req");
+            try die(io, "missing: --req");
             return;
         };
 
         const timeout_ms_str = try parseFlagValue(argv, 2, "--timeout-ms") orelse "30000";
         const timeout_ms = std.fmt.parseUnsigned(u32, timeout_ms_str, 10) catch 30000;
 
-        const resp = try wsCall(allocator, ws_url, req, timeout_ms);
+        const resp = try wsCall(io, allocator, ws_url, req, timeout_ms);
         defer allocator.free(resp);
-        const out = std.fs.File.stdout().deprecatedWriter();
-        try out.print("{s}\n", .{resp});
+        try writeStdoutLine(io, resp);
         return;
     }
 
     if (std.mem.eql(u8, cmd, "filechooser")) {
         const ws_url = try parseFlagValue(argv, 2, "--ws") orelse {
-            try die("missing: --ws");
+            try die(io, "missing: --ws");
             return;
         };
         const selector = try parseFlagValue(argv, 2, "--selector") orelse {
-            try die("missing: --selector");
+            try die(io, "missing: --selector");
             return;
         };
         const file_path = try parseFlagValue(argv, 2, "--file") orelse {
-            try die("missing: --file");
+            try die(io, "missing: --file");
             return;
         };
 
         const timeout_ms_str = try parseFlagValue(argv, 2, "--timeout-ms") orelse "30000";
         const timeout_ms = std.fmt.parseUnsigned(u32, timeout_ms_str, 10) catch 30000;
 
-        const resp = try wsFileChooser(allocator, ws_url, selector, file_path, timeout_ms);
+        const resp = try wsFileChooser(io, allocator, ws_url, selector, file_path, timeout_ms);
         defer allocator.free(resp);
-        const out = std.fs.File.stdout().deprecatedWriter();
-        try out.print("{s}\n", .{resp});
+        try writeStdoutLine(io, resp);
         return;
     }
 
-    try usage();
+    try usage(io);
 }
 
-fn usage() !void {
-    const w = std.fs.File.stderr().deprecatedWriter();
-    try w.writeAll(
+fn usage(io: std.Io) !void {
+    try std.Io.File.stderr().writeStreamingAll(
+        io,
         "cdp-bridge: minimal CDP helper (HTTP + WebSocket)\n\n" ++
             "usage:\n" ++
             "  cdp-bridge version [--addr 127.0.0.1] [--port 9222]\n" ++
@@ -137,11 +131,16 @@ fn usage() !void {
     );
 }
 
-fn die(msg: []const u8) !void {
-    const w = std.fs.File.stderr().deprecatedWriter();
-    try w.print("{s}\n", .{msg});
-    try usage();
+fn die(io: std.Io, msg: []const u8) !void {
+    var stderr_writer = std.Io.File.stderr().writer(io, &.{});
+    try stderr_writer.interface.print("{s}\n", .{msg});
+    try usage(io);
     std.process.exit(2);
+}
+
+fn writeStdoutLine(io: std.Io, text: []const u8) !void {
+    var stdout_writer = std.Io.File.stdout().writer(io, &.{});
+    try stdout_writer.interface.print("{s}\n", .{text});
 }
 
 const AddrPort = struct {
@@ -157,11 +156,11 @@ fn parseAddrPort(argv: []const []const u8, start: usize) !AddrPort {
     while (i < argv.len) : (i += 1) {
         const a = argv[i];
         if (std.mem.eql(u8, a, "--addr")) {
-            if (i + 1 >= argv.len) try die("missing value for --addr");
+            if (i + 1 >= argv.len) return error.MissingAddrValue;
             addr = argv[i + 1];
             i += 1;
         } else if (std.mem.eql(u8, a, "--port")) {
-            if (i + 1 >= argv.len) try die("missing value for --port");
+            if (i + 1 >= argv.len) return error.MissingPortValue;
             port = std.fmt.parseUnsigned(u16, argv[i + 1], 10) catch port;
             i += 1;
         }
@@ -200,9 +199,9 @@ fn buildNewPath(allocator: std.mem.Allocator, url: []const u8) ![]u8 {
     return out.toOwnedSlice(allocator);
 }
 
-fn httpRequest(allocator: std.mem.Allocator, addr: []const u8, port: u16, method: []const u8, path: []const u8) ![]u8 {
-    var bs = BufferedStream{ .stream = try std.net.tcpConnectToHost(allocator, addr, port) };
-    defer bs.stream.close();
+fn httpRequest(io: std.Io, allocator: std.mem.Allocator, addr: []const u8, port: u16, method: []const u8, path: []const u8) ![]u8 {
+    var bs = BufferedStream{ .io = io, .stream = try connectTcp(io, addr, port) };
+    defer bs.stream.close(io);
 
     const req = try std.fmt.allocPrint(
         allocator,
@@ -210,7 +209,7 @@ fn httpRequest(allocator: std.mem.Allocator, addr: []const u8, port: u16, method
         .{ method, path, addr, port },
     );
     defer allocator.free(req);
-    try bs.stream.writeAll(req);
+    try bs.writeAll(req);
 
     // Don't hang forever on a keep-alive socket.
     try setRecvTimeout(bs.stream, 30000);
@@ -234,8 +233,9 @@ fn looksLikeJson(body: []const u8) bool {
     return trimmed[0] == '{' or trimmed[0] == '[';
 }
 
-fn writeJsonOrString(body: []const u8) !void {
-    const out = std.fs.File.stdout().deprecatedWriter();
+fn writeJsonOrString(io: std.Io, body: []const u8) !void {
+    var stdout_writer = std.Io.File.stdout().writer(io, &.{});
+    const out = &stdout_writer.interface;
     if (looksLikeJson(body)) {
         try out.print("{s}\n", .{body});
         return;
@@ -315,7 +315,8 @@ fn parseWsUrl(url: []const u8) !WsUrl {
 }
 
 const BufferedStream = struct {
-    stream: std.net.Stream,
+    io: std.Io,
+    stream: std.Io.net.Stream,
     buf: [64 * 1024]u8 = undefined,
     start: usize = 0,
     end: usize = 0,
@@ -338,9 +339,25 @@ const BufferedStream = struct {
             self.end = len;
         }
 
-        const n = try self.stream.read(self.buf[self.end..]);
+        const n = try self.readShort(self.buf[self.end..]);
         if (n == 0) return error.EndOfStream;
         self.end += n;
+    }
+
+    fn readShort(self: *BufferedStream, out: []u8) !usize {
+        var reader = self.stream.reader(self.io, &.{});
+        return reader.interface.readSliceShort(out) catch |err| switch (err) {
+            error.ReadFailed => return reader.err.?,
+            else => |e| return e,
+        };
+    }
+
+    fn writeAll(self: *BufferedStream, bytes: []const u8) !void {
+        var writer = self.stream.writer(self.io, &.{});
+        writer.interface.writeAll(bytes) catch |err| switch (err) {
+            error.WriteFailed => return writer.err.?,
+            else => |e| return e,
+        };
     }
 
     fn readHeaders(self: *BufferedStream, allocator: std.mem.Allocator, max_bytes: usize) ![]u8 {
@@ -368,14 +385,14 @@ const BufferedStream = struct {
                 continue;
             }
 
-            const nread = try self.stream.read(out[off..]);
+            const nread = try self.readShort(out[off..]);
             if (nread == 0) return error.EndOfStream;
             off += nread;
         }
     }
 };
 
-fn wsCall(allocator: std.mem.Allocator, ws_url: []const u8, req_json: []const u8, timeout_ms: u32) ![]u8 {
+fn wsCall(io: std.Io, allocator: std.mem.Allocator, ws_url: []const u8, req_json: []const u8, timeout_ms: u32) ![]u8 {
     const parsed_ws = try parseWsUrl(ws_url);
 
     // Parse request id so we can ignore CDP events.
@@ -386,20 +403,20 @@ fn wsCall(allocator: std.mem.Allocator, ws_url: []const u8, req_json: []const u8
     if (idv != .integer) return error.InvalidFieldType;
     const req_id: i64 = idv.integer;
 
-    var bs = BufferedStream{ .stream = try std.net.tcpConnectToHost(allocator, parsed_ws.host, parsed_ws.port) };
-    defer bs.stream.close();
+    var bs = BufferedStream{ .io = io, .stream = try connectTcp(io, parsed_ws.host, parsed_ws.port) };
+    defer bs.stream.close(io);
 
     if (timeout_ms > 0) {
         try setRecvTimeout(bs.stream, timeout_ms);
     }
 
-    const sec_key = try genSecWebSocketKey(allocator);
+    const sec_key = try genSecWebSocketKey(io, allocator);
     defer allocator.free(sec_key);
     const accept_expected = try computeSecWebSocketAccept(allocator, sec_key);
     defer allocator.free(accept_expected);
 
     try wsHandshake(allocator, &bs, parsed_ws.host, parsed_ws.port, parsed_ws.path, sec_key, accept_expected);
-    try wsSendText(bs.stream, req_json);
+    try wsSendText(bs.io, bs.stream, req_json);
 
     while (true) {
         const msg = try wsReadTextMessage(allocator, &bs);
@@ -425,6 +442,7 @@ fn wsCall(allocator: std.mem.Allocator, ws_url: []const u8, req_json: []const u8
 }
 
 fn wsFileChooser(
+    io: std.Io,
     allocator: std.mem.Allocator,
     ws_url: []const u8,
     selector: []const u8,
@@ -433,14 +451,14 @@ fn wsFileChooser(
 ) ![]u8 {
     const parsed_ws = try parseWsUrl(ws_url);
 
-    var bs = BufferedStream{ .stream = try std.net.tcpConnectToHost(allocator, parsed_ws.host, parsed_ws.port) };
-    defer bs.stream.close();
+    var bs = BufferedStream{ .io = io, .stream = try connectTcp(io, parsed_ws.host, parsed_ws.port) };
+    defer bs.stream.close(io);
 
     if (timeout_ms > 0) {
         try setRecvTimeout(bs.stream, timeout_ms);
     }
 
-    const sec_key = try genSecWebSocketKey(allocator);
+    const sec_key = try genSecWebSocketKey(io, allocator);
     defer allocator.free(sec_key);
     const accept_expected = try computeSecWebSocketAccept(allocator, sec_key);
     defer allocator.free(accept_expected);
@@ -553,7 +571,7 @@ fn wsFileChooser(
 
 fn wsSendAndWaitId(allocator: std.mem.Allocator, bs: *BufferedStream, req_json: []const u8, req_id: i64) ![]u8 {
     defer allocator.free(req_json);
-    try wsSendText(bs.stream, req_json);
+    try wsSendText(bs.io, bs.stream, req_json);
 
     while (true) {
         const msg = try wsReadTextMessage(allocator, bs);
@@ -771,21 +789,28 @@ fn buildVerifyExpr(allocator: std.mem.Allocator, file_path: []const u8) ![]u8 {
 fn jsonStringAlloc(allocator: std.mem.Allocator, s: []const u8) ![]u8 {
     var out: std.ArrayList(u8) = .empty;
     errdefer out.deinit(allocator);
-    try writeJsonString(out.writer(allocator), s);
+    var writer: std.Io.Writer.Allocating = .fromArrayList(allocator, &out);
+    defer out = writer.toArrayList();
+    try writeJsonString(&writer.writer, s);
     return out.toOwnedSlice(allocator);
 }
 
-fn setRecvTimeout(stream: std.net.Stream, timeout_ms: u32) !void {
+fn connectTcp(io: std.Io, host: []const u8, port: u16) !std.Io.net.Stream {
+    const host_name = try std.Io.net.HostName.init(host);
+    return host_name.connect(io, port, .{ .mode = .stream, .timeout = .none });
+}
+
+fn setRecvTimeout(stream: std.Io.net.Stream, timeout_ms: u32) !void {
     const tv = std.posix.timeval{
         .sec = @as(isize, @intCast(timeout_ms / 1000)),
         .usec = @as(isize, @intCast((timeout_ms % 1000) * 1000)),
     };
-    try std.posix.setsockopt(stream.handle, std.posix.SOL.SOCKET, std.posix.SO.RCVTIMEO, std.mem.asBytes(&tv));
+    try std.posix.setsockopt(stream.socket.handle, std.posix.SOL.SOCKET, std.posix.SO.RCVTIMEO, std.mem.asBytes(&tv));
 }
 
-fn genSecWebSocketKey(allocator: std.mem.Allocator) ![]u8 {
+fn genSecWebSocketKey(io: std.Io, allocator: std.mem.Allocator) ![]u8 {
     var rnd: [16]u8 = undefined;
-    std.crypto.random.bytes(&rnd);
+    io.random(&rnd);
 
     // base64 output length for 16 bytes is 24
     var buf: [24]u8 = undefined;
@@ -820,7 +845,7 @@ fn wsHandshake(allocator: std.mem.Allocator, bs: *BufferedStream, host: []const 
             "\r\n",
         .{ path, host, port, sec_key },
     );
-    try bs.stream.writeAll(req);
+    try bs.writeAll(req);
 
     const hdr_bytes = try bs.readHeaders(allocator, 64 * 1024);
     defer allocator.free(hdr_bytes);
@@ -856,15 +881,15 @@ fn findHeaderValue(headers: []const u8, key_lower: []const u8) ?[]const u8 {
 
 // readUntilHeadersEnd removed: BufferedStream.readHeaders keeps leftovers
 
-fn wsSendText(stream: std.net.Stream, text: []const u8) !void {
-    try wsSendFrame(stream, 0x1, text);
+fn wsSendText(io: std.Io, stream: std.Io.net.Stream, text: []const u8) !void {
+    try wsSendFrame(io, stream, 0x1, text);
 }
 
-fn wsSendPong(stream: std.net.Stream, payload: []const u8) !void {
-    try wsSendFrame(stream, 0xA, payload);
+fn wsSendPong(io: std.Io, stream: std.Io.net.Stream, payload: []const u8) !void {
+    try wsSendFrame(io, stream, 0xA, payload);
 }
 
-fn wsSendFrame(stream: std.net.Stream, opcode: u8, payload: []const u8) !void {
+fn wsSendFrame(io: std.Io, stream: std.Io.net.Stream, opcode: u8, payload: []const u8) !void {
     // Client-to-server frames MUST be masked.
     var header: [14]u8 = undefined;
     var hlen: usize = 0;
@@ -897,7 +922,7 @@ fn wsSendFrame(stream: std.net.Stream, opcode: u8, payload: []const u8) !void {
     }
 
     var mask: [4]u8 = undefined;
-    std.crypto.random.bytes(&mask);
+    io.random(&mask);
 
     header[hlen] = mask[0];
     header[hlen + 1] = mask[1];
@@ -905,7 +930,8 @@ fn wsSendFrame(stream: std.net.Stream, opcode: u8, payload: []const u8) !void {
     header[hlen + 3] = mask[3];
     hlen += 4;
 
-    try stream.writeAll(header[0..hlen]);
+    var writer = stream.writer(io, &.{});
+    try writer.interface.writeAll(header[0..hlen]);
 
     // Write masked payload.
     var chunk: [4096]u8 = undefined;
@@ -916,7 +942,7 @@ fn wsSendFrame(stream: std.net.Stream, opcode: u8, payload: []const u8) !void {
             const idx = i + j;
             chunk[j] = payload[idx] ^ mask[idx % 4];
         }
-        try stream.writeAll(chunk[0..n]);
+        try writer.interface.writeAll(chunk[0..n]);
         i += n;
     }
 }
@@ -985,7 +1011,7 @@ fn wsReadTextMessage(allocator: std.mem.Allocator, bs: *BufferedStream) ![]u8 {
 
         switch (frame.opcode) {
             0x9 => { // ping
-                try wsSendPong(bs.stream, frame.payload);
+                try wsSendPong(bs.io, bs.stream, frame.payload);
                 continue;
             },
             0xA => continue, // pong
