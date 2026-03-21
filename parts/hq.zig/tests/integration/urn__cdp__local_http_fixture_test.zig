@@ -400,3 +400,12 @@ fn findChromeExecutable(io: std.Io, allocator: std.mem.Allocator, override: ?[]c
     }
     return error.ChromeNotFound;
 }
+
+pub fn main(minimal: std.process.Init.Minimal) !void {
+    const allocator = std.heap.c_allocator;
+    const raw = std.process.Environ.getAlloc(minimal.environ, allocator, "HQ_LIVE_CDP") catch return;
+    defer allocator.free(raw);
+    if (!std.mem.eql(u8, raw, "1")) return;
+
+    return error.LiveCdpExecutableRunnerNotImplemented;
+}
