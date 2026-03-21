@@ -1,6 +1,8 @@
 # Chrome Bootstrap Runbook
 
-This runbook captures the proven headful bootstrap flow and the approved handoff:
+This runbook replaces the old Chrome skill's operational runtime guidance.
+
+It captures the proven headful bootstrap flow and the approved handoff:
 
 `seed profile -> published snapshot -> runtime copy -> headless service`
 
@@ -11,12 +13,17 @@ This runbook captures the proven headful bootstrap flow and the approved handoff
 - Do not auto-promote runtime back into the canonical snapshot.
 - Keep the headful login bootstrap separate from the headless service runtime.
 
+See also:
+
+- `ARCHITECTURE.md` for ownership and non-goals
+- `MIGRATION_CHECKLIST.md` for the skill-retirement checklist
+
 ## Package Provenance
 
 - Use the flake-provided `chromium-cdp` package from this repo.
 - Do not swap in ad-hoc `nixpkgs#chromium` commands during incident response.
-- The proven launch path in this environment is the package behind:
-  - `path:/home/nixos/repos/flakes/.worktrees/chrome-service#chromium-cdp`
+- From the current checkout root, use the flake export:
+  - `path:.#chromium-cdp`
 
 ## Paths
 
@@ -39,7 +46,7 @@ This runbook treats `/home/nixos/.secret/hq/chromium-cdp-profile-140` as the can
 
 ## Proven Successful Start Command
 
-The exact proven `systemd --user` transient form from this session is:
+From the current repo checkout root, the proven `systemd --user` transient form is:
 
 ```sh
 /run/current-system/sw/bin/systemd-run --user --unit chrome-login-9223 \
@@ -47,7 +54,7 @@ The exact proven `systemd --user` transient form from this session is:
   --property=RestartSec=1 \
   --property=KillMode=control-group \
   --collect \
-  /run/current-system/sw/bin/nix shell 'path:/home/nixos/repos/flakes/.worktrees/chrome-service#chromium-cdp' \
+  /run/current-system/sw/bin/nix shell 'path:.#chromium-cdp' \
     nixpkgs#bash nixpkgs#coreutils nixpkgs#curl nixpkgs#jq \
     nixpkgs#xorg.xorgserver nixpkgs#xorg.xdpyinfo nixpkgs#x11vnc \
     -c bash -c 'set -euo pipefail
@@ -151,12 +158,19 @@ This copies `seed -> published snapshot` and does not auto-promote any runtime d
 
 ## Current Headless Conclusion
 
-- Copied-profile headless remains the target path.
-- Live ChatGPT currently still produces:
-  - `app.chatgpt.status = challenge-blocked`
-  - `app.chatgpt.reason_code = CHALLENGE_DETECTED`
-  - `app.chatgpt.probe.title = Just a moment...`
-- Therefore headful bootstrap is still needed as a recovery/bootstrap lane, even though the long-term target remains headless service use.
+- Published-snapshot headless reuse is now proven on `9222`.
+- The approved path is:
+  - `seed profile -> published snapshot -> runtime copy -> headless service`
+- A good published snapshot has been observed to return:
+  - `core.status = green`
+  - `app.chatgpt.status = logged-in`
+  - `app.chatgpt.reason_code = OK`
+- Headful bootstrap remains necessary only for seed creation or explicit recovery.
+- A bad or stale snapshot can still degrade to:
+  - `login-required`
+  - `challenge-blocked`
+  - `probe-failed`
+  and the service must classify that explicitly instead of guessing.
 
 ## Incident Table
 
