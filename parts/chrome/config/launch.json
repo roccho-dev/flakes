@@ -4,6 +4,9 @@
   "remote_debugging_port": 9222,
   "headless_baseline": true,
   "start_url": "about:blank",
+  "password_store": "basic",
+  "disable_automation_controlled": true,
+  "spoof_user_agent": true,
   "requires_copied_user_data_dir": true,
   "cleanup_runtime_artifacts_before_launch": true
 }

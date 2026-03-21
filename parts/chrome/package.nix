@@ -1,4 +1,20 @@
-{ pkgs, cdpBridge }:
+{
+  pkgs,
+  cdpBridge ? pkgs.stdenv.mkDerivation {
+    pname = "cdp-bridge";
+    version = "0.1.0";
+    src = ../cdp/cdp-bridge.zig;
+    dontUnpack = true;
+    nativeBuildInputs = [ pkgs.zig ];
+    buildPhase = ''
+      runHook preBuild
+      mkdir -p "$out/bin"
+      zig build-exe -O ReleaseSafe -fstrip -femit-bin="$out/bin/cdp-bridge" "$src"
+      runHook postBuild
+    '';
+    installPhase = "true";
+  },
+}:
 let
   contract = import ./lib.nix;
 

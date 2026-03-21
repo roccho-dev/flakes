@@ -16,6 +16,9 @@
 
         jq -e '.headless_baseline == true' ${./config/launch.json} > /dev/null
         jq -e '.remote_debugging_address == "127.0.0.1"' ${./config/launch.json} > /dev/null
+        jq -e '.password_store == "basic"' ${./config/launch.json} > /dev/null
+        jq -e '.disable_automation_controlled == true' ${./config/launch.json} > /dev/null
+        jq -e '.spoof_user_agent == true' ${./config/launch.json} > /dev/null
 
         jq -e '.automatic == false' ${./config/recovery.json} > /dev/null
         jq -e '.requires_opt_in == true' ${./config/recovery.json} > /dev/null

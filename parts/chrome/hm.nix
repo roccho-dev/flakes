@@ -15,6 +15,9 @@ let
     "CHROME_SERVICE_START_URL=about:blank"
     "CHROME_SERVICE_HEADLESS=1"
     "CHROME_SERVICE_ALLOW_RECOVER=0"
+    "CHROME_SERVICE_PASSWORD_STORE=basic"
+    "CHROME_SERVICE_DISABLE_AUTOMATION=1"
+    "CHROME_SERVICE_SPOOF_USER_AGENT=1"
   ];
 
   cleanupPid = pkgs.writeShellScript "chromedevtoolprotocol-service-cleanup-pid" ''
