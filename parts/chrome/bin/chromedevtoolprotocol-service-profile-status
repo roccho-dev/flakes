@@ -39,6 +39,8 @@ export XDG_STATE_HOME="$tmp_root/state"
 export XDG_RUNTIME_DIR="$tmp_root/run"
 CHROME_SERVICE_PORT="$(choose_port)"
 export CHROME_SERVICE_PORT
+export CHROME_SERVICE_APP_MATCH
+export CHROME_SERVICE_START_URL
 export CHROME_SERVICE_SOURCE_PROFILE="$CHROME_SERVICE_PUBLISHED_SNAPSHOT"
 export CHROME_SERVICE_HEALTH_SCOPE
 
@@ -52,7 +54,17 @@ i=0
 while [ "$i" -lt 120 ]; do
   if last_json="$(chromedevtoolprotocol-service-health 2> /dev/null)"; then
     if printf '%s' "$last_json" | jq -e '.core.status == "green"' > /dev/null; then
-      break
+      if [ "$CHROME_SERVICE_HEALTH_SCOPE" = "core" ]; then
+        break
+      fi
+
+      app_status="$(printf '%s' "$last_json" | jq -r '.app.chatgpt.status')"
+      app_reason="$(printf '%s' "$last_json" | jq -r '.app.chatgpt.reason_code')"
+      case "$app_status:$app_reason" in
+        logged-in:*|login-required:*|challenge-blocked:*|probe-failed:AUTH_PROBE_TRANSPORT_FAILED|probe-failed:AUTH_PROBE_RESPONSE_INVALID|probe-failed:NETWORK_OFFLINE)
+          break
+          ;;
+      esac
     fi
   fi
   i=$((i + 1))
