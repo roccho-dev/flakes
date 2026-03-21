@@ -1,0 +1,65 @@
+set -euo pipefail
+
+service_name="chromedevtoolprotocol-service"
+schema_version=1
+
+: "${CHROME_SERVICE_ALLOW_RECOVER:=0}"
+: "${XDG_STATE_HOME:=$HOME/.local/state}"
+
+state_dir="$XDG_STATE_HOME/$service_name"
+timestamp="$(date --iso-8601=seconds)"
+
+mkdir -p "$state_dir"
+
+if [ "$CHROME_SERVICE_ALLOW_RECOVER" != "1" ]; then
+  jq -n \
+    --argjson schema_version "$schema_version" \
+    --arg generated_at "$timestamp" \
+    '{
+      schema_version: $schema_version,
+      generated_at: $generated_at,
+      action: "recover",
+      executed: false,
+      eligible: false,
+      reason_code: "RECOVERY_DISABLED"
+    }'
+  exit 40
+fi
+
+if health_json="$(chromedevtoolprotocol-service-health 2> /dev/null)"; then
+  core_status="$(printf '%s' "$health_json" | jq -r '.core.status // "red"')"
+else
+  core_status="red"
+fi
+
+eligible=false
+reason_code="CORE_GREEN"
+
+case "$core_status" in
+  red|config-error)
+    eligible=true
+    reason_code="RECOVERY_NOT_IMPLEMENTED"
+    ;;
+esac
+
+jq -n \
+  --argjson schema_version "$schema_version" \
+  --arg generated_at "$timestamp" \
+  --arg core_status "$core_status" \
+  --argjson eligible "$eligible" \
+  --arg reason_code "$reason_code" \
+  '{
+    schema_version: $schema_version,
+    generated_at: $generated_at,
+    action: "recover",
+    executed: false,
+    core_status: $core_status,
+    eligible: $eligible,
+    reason_code: $reason_code
+  }'
+
+if [ "$eligible" = true ]; then
+  exit 41
+fi
+
+exit 0

@@ -1,0 +1,548 @@
+set -euo pipefail
+
+service_name="chromedevtoolprotocol-service"
+schema_version=1
+
+: "${CHROME_SERVICE_ADDR:=127.0.0.1}"
+: "${CHROME_SERVICE_PORT:=9222}"
+: "${CHROME_SERVICE_APP_MATCH:=https://chatgpt.com}"
+: "${CHROME_SERVICE_HEALTH_SCOPE:=app}"
+: "${CHROME_SERVICE_APP_LOGIN_COOLDOWN_SEC:=300}"
+: "${CHROME_SERVICE_APP_CHALLENGE_COOLDOWN_SEC:=3600}"
+: "${XDG_STATE_HOME:=$HOME/.local/state}"
+: "${XDG_RUNTIME_DIR:=/run/user/$(id -u)}"
+
+state_dir="$XDG_STATE_HOME/$service_name"
+runtime_profile="$state_dir/runtime/profile.current"
+sync_file="$state_dir/profile-sync.json"
+pid_file="$state_dir/service.pid"
+health_file="$state_dir/health.json"
+app_health_file="$state_dir/app-health.json"
+cooldown_file="$state_dir/app-cooldown.json"
+lock_dir="$XDG_RUNTIME_DIR/$service_name"
+lock_file="$lock_dir/profile.lock"
+timestamp="$(date --iso-8601=seconds)"
+
+mkdir -p "$state_dir" "$lock_dir"
+exec 9>"$lock_file"
+flock -s 9
+
+errors='[]'
+
+append_error() {
+  local scope="$1"
+  local code="$2"
+  local detail="$3"
+
+  errors="$(jq -c \
+    --arg scope "$scope" \
+    --arg code "$code" \
+    --arg detail "$detail" \
+    '. + [{ scope: $scope, code: $code, detail: $detail }]' <<<"$errors")"
+}
+
+chatgpt_status="probe-failed"
+chatgpt_reason_code="APP_PROBE_NOT_RUN"
+chatgpt_target_found=false
+chatgpt_target_url=""
+chatgpt_target_ws_url=""
+chatgpt_probe_ok=false
+chatgpt_probe_executed=false
+chatgpt_probe_cached=false
+chatgpt_probe_skipped_reason=""
+chatgpt_probe_ready_state=""
+chatgpt_probe_title=""
+chatgpt_probe_network_online=false
+chatgpt_probe_composer_found=false
+chatgpt_probe_login_found=false
+chatgpt_probe_captcha_found=false
+chatgpt_probe_verify_human_found=false
+chatgpt_probe_blocked_found=false
+chatgpt_observed_at=""
+cooldown_active=false
+cooldown_reason_code=""
+cooldown_until=""
+cooldown_remaining_seconds=0
+
+load_cached_app() {
+  if [ ! -f "$app_health_file" ] || ! jq empty "$app_health_file" > /dev/null 2>&1; then
+    return 0
+  fi
+
+  chatgpt_probe_cached=true
+  chatgpt_status="$(jq -r '.status // "probe-failed"' "$app_health_file")"
+  chatgpt_reason_code="$(jq -r '.reason_code // "APP_PROBE_NOT_RUN"' "$app_health_file")"
+  chatgpt_target_found="$(jq -r '.target_found // false' "$app_health_file")"
+  chatgpt_target_url="$(jq -r '.target_url // empty' "$app_health_file")"
+  chatgpt_target_ws_url="$(jq -r '.target_ws_url // empty' "$app_health_file")"
+  chatgpt_probe_ok="$(jq -r '.probe.ok // false' "$app_health_file")"
+  chatgpt_probe_title="$(jq -r '.probe.title // empty' "$app_health_file")"
+  chatgpt_probe_ready_state="$(jq -r '.probe.ready_state // empty' "$app_health_file")"
+  chatgpt_probe_network_online="$(jq -r '.probe.network_online // false' "$app_health_file")"
+  chatgpt_probe_composer_found="$(jq -r '.probe.composer_found // false' "$app_health_file")"
+  chatgpt_probe_login_found="$(jq -r '.probe.login_found // false' "$app_health_file")"
+  chatgpt_probe_captcha_found="$(jq -r '.probe.captcha_found // false' "$app_health_file")"
+  chatgpt_probe_verify_human_found="$(jq -r '.probe.verify_human_found // false' "$app_health_file")"
+  chatgpt_probe_blocked_found="$(jq -r '.probe.blocked_found // false' "$app_health_file")"
+  chatgpt_observed_at="$(jq -r '.observed_at // empty' "$app_health_file")"
+}
+
+save_cached_app() {
+  local tmp
+
+  tmp="$(mktemp "$state_dir/app-health.XXXXXX")"
+  jq -n \
+    --arg status "$chatgpt_status" \
+    --arg reason_code "$chatgpt_reason_code" \
+    --argjson target_found "$chatgpt_target_found" \
+    --arg target_url "$chatgpt_target_url" \
+    --arg target_ws_url "$chatgpt_target_ws_url" \
+    --arg observed_at "$chatgpt_observed_at" \
+    --argjson probe_ok "$chatgpt_probe_ok" \
+    --arg probe_title "$chatgpt_probe_title" \
+    --arg probe_ready_state "$chatgpt_probe_ready_state" \
+    --argjson probe_network_online "$chatgpt_probe_network_online" \
+    --argjson probe_composer_found "$chatgpt_probe_composer_found" \
+    --argjson probe_login_found "$chatgpt_probe_login_found" \
+    --argjson probe_captcha_found "$chatgpt_probe_captcha_found" \
+    --argjson probe_verify_human_found "$chatgpt_probe_verify_human_found" \
+    --argjson probe_blocked_found "$chatgpt_probe_blocked_found" \
+    '{
+      status: $status,
+      reason_code: $reason_code,
+      target_found: $target_found,
+      target_url: (if $target_url == "" then null else $target_url end),
+      target_ws_url: (if $target_ws_url == "" then null else $target_ws_url end),
+      observed_at: $observed_at,
+      probe: {
+        ok: $probe_ok,
+        title: (if $probe_title == "" then null else $probe_title end),
+        ready_state: (if $probe_ready_state == "" then null else $probe_ready_state end),
+        network_online: $probe_network_online,
+        composer_found: $probe_composer_found,
+        login_found: $probe_login_found,
+        captcha_found: $probe_captcha_found,
+        verify_human_found: $probe_verify_human_found,
+        blocked_found: $probe_blocked_found
+      }
+    }' > "$tmp"
+  mv "$tmp" "$app_health_file"
+}
+
+clear_cooldown() {
+  rm -f "$cooldown_file"
+  cooldown_active=false
+  cooldown_reason_code=""
+  cooldown_until=""
+  cooldown_remaining_seconds=0
+}
+
+set_cooldown() {
+  local reason_code="$1"
+  local seconds="$2"
+  local now
+  local until_epoch
+  local until_iso
+  local tmp
+
+  if [ "$seconds" -le 0 ]; then
+    clear_cooldown
+    return 0
+  fi
+
+  now="$(date +%s)"
+  until_epoch=$((now + seconds))
+  until_iso="$(date --date="@$until_epoch" --iso-8601=seconds)"
+  tmp="$(mktemp "$state_dir/app-cooldown.XXXXXX")"
+  jq -n \
+    --arg reason_code "$reason_code" \
+    --arg generated_at "$timestamp" \
+    --arg until "$until_iso" \
+    --argjson until_epoch "$until_epoch" \
+    '{
+      reason_code: $reason_code,
+      generated_at: $generated_at,
+      until: $until,
+      until_epoch: $until_epoch
+    }' > "$tmp"
+  mv "$tmp" "$cooldown_file"
+  cooldown_active=true
+  cooldown_reason_code="$reason_code"
+  cooldown_until="$until_iso"
+  cooldown_remaining_seconds="$seconds"
+}
+
+load_cooldown() {
+  local now
+  local until_epoch
+
+  if [ ! -f "$cooldown_file" ] || ! jq empty "$cooldown_file" > /dev/null 2>&1; then
+    return 0
+  fi
+
+  now="$(date +%s)"
+  until_epoch="$(jq -r '.until_epoch // 0' "$cooldown_file")"
+  if [ "$until_epoch" -le "$now" ]; then
+    clear_cooldown
+    return 0
+  fi
+
+  cooldown_active=true
+  cooldown_reason_code="$(jq -r '.reason_code // empty' "$cooldown_file")"
+  cooldown_until="$(jq -r '.until // empty' "$cooldown_file")"
+  cooldown_remaining_seconds=$((until_epoch - now))
+}
+
+load_cached_app
+load_cooldown
+
+profile_sync_status="missing"
+profile_source_path=""
+if [ -f "$sync_file" ] && jq empty "$sync_file" > /dev/null 2>&1; then
+  profile_sync_status="$(jq -r '.status // "missing"' "$sync_file")"
+  profile_source_path="$(jq -r '.source_path // empty' "$sync_file")"
+else
+  append_error "profile" "PROFILE_SYNC_METADATA_MISSING" "$sync_file"
+fi
+
+process_running=false
+process_pid=""
+if [ -f "$pid_file" ]; then
+  process_pid="$(tr -d '\n' < "$pid_file")"
+  if [ -n "$process_pid" ] && kill -0 "$process_pid" 2> /dev/null; then
+    process_running=true
+  else
+    append_error "process" "PID_FILE_STALE" "$pid_file"
+  fi
+else
+  append_error "process" "PID_FILE_MISSING" "$pid_file"
+fi
+
+version_ok=false
+list_ok=false
+browser_ws_url=""
+page_count=0
+generic_attachable=false
+
+if version_json="$(curl -fsS --max-time 2 "http://$CHROME_SERVICE_ADDR:$CHROME_SERVICE_PORT/json/version" 2> /dev/null)"; then
+  version_ok=true
+  browser_ws_url="$(printf '%s' "$version_json" | jq -r '.webSocketDebuggerUrl // empty')"
+else
+  append_error "cdp" "JSON_VERSION_UNAVAILABLE" "http://$CHROME_SERVICE_ADDR:$CHROME_SERVICE_PORT/json/version"
+fi
+
+if list_json="$(curl -fsS --max-time 2 "http://$CHROME_SERVICE_ADDR:$CHROME_SERVICE_PORT/json/list" 2> /dev/null)"; then
+  list_ok=true
+  page_count="$(printf '%s' "$list_json" | jq -r 'map(select(.type == "page")) | length')"
+  generic_attachable="$(printf '%s' "$list_json" | jq -r 'any(.[]?; .type == "page" and (.webSocketDebuggerUrl // "") != "")')"
+  chatgpt_target="$(printf '%s' "$list_json" | jq -c --arg app "$CHROME_SERVICE_APP_MATCH" 'map(select(.type == "page" and ((.url // "") | startswith($app)))) | .[0] // empty')"
+  if [ -n "$chatgpt_target" ]; then
+    chatgpt_target_found=true
+    chatgpt_target_url="$(printf '%s' "$chatgpt_target" | jq -r '.url // empty')"
+    chatgpt_target_ws_url="$(printf '%s' "$chatgpt_target" | jq -r '.webSocketDebuggerUrl // empty')"
+  fi
+else
+  append_error "cdp" "JSON_LIST_UNAVAILABLE" "http://$CHROME_SERVICE_ADDR:$CHROME_SERVICE_PORT/json/list"
+fi
+
+core_status="green"
+core_reason_code="OK"
+
+if [ "$profile_sync_status" = "missing" ]; then
+  core_status="degraded"
+  core_reason_code="PROFILE_SYNC_METADATA_MISSING"
+fi
+
+if [ "$version_ok" != true ] || [ "$list_ok" != true ]; then
+  core_status="red"
+  core_reason_code="CDP_UNHEALTHY"
+elif [ "$generic_attachable" != true ]; then
+  core_status="degraded"
+  core_reason_code="PAGE_TARGET_UNAVAILABLE"
+fi
+
+app_probe_requested=false
+case "$CHROME_SERVICE_HEALTH_SCOPE" in
+  app)
+    app_probe_requested=true
+    ;;
+  core)
+    ;;
+  *)
+    append_error "config" "INVALID_HEALTH_SCOPE" "$CHROME_SERVICE_HEALTH_SCOPE"
+    CHROME_SERVICE_HEALTH_SCOPE="core"
+    ;;
+esac
+
+if [ "$app_probe_requested" != true ]; then
+  chatgpt_probe_skipped_reason="CORE_SCOPE"
+elif [ "$list_ok" != true ]; then
+  if [ "$chatgpt_probe_cached" != true ]; then
+    chatgpt_status="probe-failed"
+    chatgpt_reason_code="CDP_LIST_UNAVAILABLE"
+  fi
+  chatgpt_probe_skipped_reason="CDP_LIST_UNAVAILABLE"
+elif [ "$chatgpt_target_found" != true ]; then
+  if [ "$chatgpt_probe_cached" != true ]; then
+    chatgpt_status="probe-failed"
+    chatgpt_reason_code="TARGET_MISSING"
+  fi
+  chatgpt_probe_skipped_reason="TARGET_MISSING"
+elif [ -z "$chatgpt_target_ws_url" ]; then
+  if [ "$chatgpt_probe_cached" != true ]; then
+    chatgpt_status="probe-failed"
+    chatgpt_reason_code="TARGET_WS_URL_MISSING"
+  fi
+  chatgpt_probe_skipped_reason="TARGET_WS_URL_MISSING"
+elif [ "$cooldown_active" = true ]; then
+  if [ "$chatgpt_probe_cached" != true ]; then
+    case "$cooldown_reason_code" in
+      LOGIN_REQUIRED)
+        chatgpt_status="login-required"
+        ;;
+      CHALLENGE_DETECTED)
+        chatgpt_status="challenge-blocked"
+        ;;
+      *)
+        chatgpt_status="probe-failed"
+        ;;
+    esac
+    chatgpt_reason_code="$cooldown_reason_code"
+  fi
+  chatgpt_probe_skipped_reason="COOLDOWN_ACTIVE"
+else
+  chatgpt_probe_js=$(cat <<'EOF'
+(() => {
+  const q = (selector) => document.querySelector(selector);
+  const title = document.title || '';
+  const bodyText = document.body ? (document.body.innerText || '') : '';
+  const loginText = /(log in|sign in|continue with google|continue with microsoft|continue with apple)/i.test(bodyText);
+  const challengeTitle = /(just a moment|checking your browser|attention required)/i.test(title);
+  const blockedText = challengeTitle || /(verify you are human|human verification|captcha|access denied|temporarily blocked|unusual activity)/i.test(bodyText);
+  const verifyHuman = Array.from(document.querySelectorAll('button, a, [role="button"]')).some((el) => {
+    const meta = ((el.innerText || '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('title') || '')).trim();
+    return /(verify you are human|human verification|i am human)/i.test(meta);
+  });
+  const login = !!q('input[type="password"], form[action*="login"], [href*="login"], button[data-testid*="login"]') || loginText;
+  const captcha = !!q('iframe[src*="captcha"], [class*="captcha" i], [id*="captcha" i]');
+  const composer = !!(q('#prompt-textarea') || q('textarea') || q('[contenteditable="true"]'));
+  return {
+    title: title,
+    ready_state: document.readyState,
+    network_online: navigator.onLine,
+    composer_found: composer,
+    login_found: login,
+    captcha_found: captcha,
+    verify_human_found: verifyHuman,
+    blocked_found: blockedText
+  };
+})()
+EOF
+)
+
+  probe_req="$(jq -cn --arg expr "$chatgpt_probe_js" '{ id: 1, method: "Runtime.evaluate", params: { expression: $expr, returnByValue: true, awaitPromise: true } }')"
+  if ! probe_resp="$(cdp-bridge call --ws "$chatgpt_target_ws_url" --req "$probe_req" --timeout-ms 5000 2> /dev/null)"; then
+    chatgpt_status="probe-failed"
+    chatgpt_reason_code="AUTH_PROBE_TRANSPORT_FAILED"
+    append_error "app" "AUTH_PROBE_TRANSPORT_FAILED" "$chatgpt_target_url"
+  elif ! probe_value="$(printf '%s' "$probe_resp" | jq -cer '.result.result.value // empty' 2> /dev/null)"; then
+    chatgpt_status="probe-failed"
+    chatgpt_reason_code="AUTH_PROBE_RESPONSE_INVALID"
+    append_error "app" "AUTH_PROBE_RESPONSE_INVALID" "$chatgpt_target_url"
+  else
+    chatgpt_probe_ok=true
+    chatgpt_probe_executed=true
+    chatgpt_probe_title="$(printf '%s' "$probe_value" | jq -r '.title // empty')"
+    chatgpt_probe_ready_state="$(printf '%s' "$probe_value" | jq -r '.ready_state // empty')"
+    chatgpt_probe_network_online="$(printf '%s' "$probe_value" | jq -r '.network_online // false')"
+    chatgpt_probe_composer_found="$(printf '%s' "$probe_value" | jq -r '.composer_found // false')"
+    chatgpt_probe_login_found="$(printf '%s' "$probe_value" | jq -r '.login_found // false')"
+    chatgpt_probe_captcha_found="$(printf '%s' "$probe_value" | jq -r '.captcha_found // false')"
+    chatgpt_probe_verify_human_found="$(printf '%s' "$probe_value" | jq -r '.verify_human_found // false')"
+    chatgpt_probe_blocked_found="$(printf '%s' "$probe_value" | jq -r '.blocked_found // false')"
+
+    if [ "$chatgpt_probe_network_online" != true ]; then
+      chatgpt_status="probe-failed"
+      chatgpt_reason_code="NETWORK_OFFLINE"
+    elif [ "$chatgpt_probe_captcha_found" = true ] || [ "$chatgpt_probe_verify_human_found" = true ] || [ "$chatgpt_probe_blocked_found" = true ]; then
+      chatgpt_status="challenge-blocked"
+      chatgpt_reason_code="CHALLENGE_DETECTED"
+    elif [ "$chatgpt_probe_login_found" = true ]; then
+      chatgpt_status="login-required"
+      chatgpt_reason_code="LOGIN_REQUIRED"
+    elif [ "$chatgpt_probe_composer_found" = true ]; then
+      chatgpt_status="logged-in"
+      chatgpt_reason_code="OK"
+    elif [ "$chatgpt_probe_ready_state" != complete ]; then
+      chatgpt_status="probe-failed"
+      chatgpt_reason_code="PAGE_NOT_READY"
+    else
+      chatgpt_status="probe-failed"
+      chatgpt_reason_code="APP_STATE_UNCERTAIN"
+    fi
+  fi
+
+  chatgpt_observed_at="$timestamp"
+  save_cached_app
+  chatgpt_probe_cached=false
+
+  case "$chatgpt_status" in
+    logged-in)
+      clear_cooldown
+      ;;
+    login-required)
+      set_cooldown "$chatgpt_reason_code" "$CHROME_SERVICE_APP_LOGIN_COOLDOWN_SEC"
+      ;;
+    challenge-blocked)
+      set_cooldown "$chatgpt_reason_code" "$CHROME_SERVICE_APP_CHALLENGE_COOLDOWN_SEC"
+      ;;
+    *)
+      clear_cooldown
+      ;;
+  esac
+fi
+
+recovery_eligible=false
+recovery_reason_code="CORE_GREEN"
+
+case "$core_status" in
+  red)
+    recovery_eligible=true
+    recovery_reason_code="CORE_RED"
+    exit_code=20
+    ;;
+  config-error)
+    recovery_eligible=true
+    recovery_reason_code="CONFIG_ERROR"
+    exit_code=30
+    ;;
+  degraded)
+    recovery_reason_code="CORE_DEGRADED"
+    exit_code=10
+    ;;
+  *)
+    exit_code=0
+    ;;
+esac
+
+tmp="$(mktemp "$state_dir/health.XXXXXX")"
+jq -n \
+  --argjson schema_version "$schema_version" \
+  --arg generated_at "$timestamp" \
+  --arg service_name "$service_name" \
+  --arg addr "$CHROME_SERVICE_ADDR" \
+  --arg health_scope "$CHROME_SERVICE_HEALTH_SCOPE" \
+  --argjson port "$CHROME_SERVICE_PORT" \
+  --arg health_file "$health_file" \
+  --arg core_status "$core_status" \
+  --arg core_reason_code "$core_reason_code" \
+  --arg profile_sync_status "$profile_sync_status" \
+  --arg profile_source_path "$profile_source_path" \
+  --arg runtime_profile "$runtime_profile" \
+  --argjson process_running "$process_running" \
+  --arg process_pid "$process_pid" \
+  --argjson version_ok "$version_ok" \
+  --argjson list_ok "$list_ok" \
+  --arg browser_ws_url "$browser_ws_url" \
+  --argjson page_count "$page_count" \
+  --argjson generic_attachable "$generic_attachable" \
+  --arg chatgpt_status "$chatgpt_status" \
+  --arg chatgpt_reason_code "$chatgpt_reason_code" \
+  --argjson chatgpt_target_found "$chatgpt_target_found" \
+  --arg chatgpt_target_url "$chatgpt_target_url" \
+  --arg chatgpt_target_ws_url "$chatgpt_target_ws_url" \
+  --argjson chatgpt_probe_ok "$chatgpt_probe_ok" \
+  --argjson chatgpt_probe_executed "$chatgpt_probe_executed" \
+  --argjson chatgpt_probe_cached "$chatgpt_probe_cached" \
+  --arg chatgpt_probe_skipped_reason "$chatgpt_probe_skipped_reason" \
+  --arg chatgpt_probe_title "$chatgpt_probe_title" \
+  --arg chatgpt_probe_ready_state "$chatgpt_probe_ready_state" \
+  --argjson chatgpt_probe_network_online "$chatgpt_probe_network_online" \
+  --argjson chatgpt_probe_composer_found "$chatgpt_probe_composer_found" \
+  --argjson chatgpt_probe_login_found "$chatgpt_probe_login_found" \
+  --argjson chatgpt_probe_captcha_found "$chatgpt_probe_captcha_found" \
+  --argjson chatgpt_probe_verify_human_found "$chatgpt_probe_verify_human_found" \
+  --argjson chatgpt_probe_blocked_found "$chatgpt_probe_blocked_found" \
+  --arg chatgpt_observed_at "$chatgpt_observed_at" \
+  --arg app_match "$CHROME_SERVICE_APP_MATCH" \
+  --argjson cooldown_active "$cooldown_active" \
+  --arg cooldown_reason_code "$cooldown_reason_code" \
+  --arg cooldown_until "$cooldown_until" \
+  --argjson cooldown_remaining_seconds "$cooldown_remaining_seconds" \
+  --argjson recovery_eligible "$recovery_eligible" \
+  --arg recovery_reason_code "$recovery_reason_code" \
+  --argjson errors "$errors" \
+  '{
+    schema_version: $schema_version,
+    generated_at: $generated_at,
+    service: {
+      name: $service_name,
+      addr: $addr,
+      port: $port,
+      health_scope: $health_scope,
+      health_file: $health_file
+    },
+    core: {
+      status: $core_status,
+      reason_code: $core_reason_code,
+      profile: {
+        source_path: $profile_source_path,
+        runtime_path: $runtime_profile,
+        sync_status: $profile_sync_status,
+        source_snapshot_required: true,
+        direct_reuse: "forbidden"
+      },
+      process: {
+        running: $process_running,
+        pid: (if $process_pid == "" then null else ($process_pid | tonumber?) end)
+      },
+      cdp: {
+        version_ok: $version_ok,
+        list_ok: $list_ok,
+        browser_ws_url: (if $browser_ws_url == "" then null else $browser_ws_url end)
+      },
+      target: {
+        page_count: $page_count,
+        generic_attachable: $generic_attachable
+      }
+    },
+    app: {
+      chatgpt: {
+        status: $chatgpt_status,
+        reason_code: $chatgpt_reason_code,
+        observed_at: (if $chatgpt_observed_at == "" then null else $chatgpt_observed_at end),
+        match: $app_match,
+        target_found: $chatgpt_target_found,
+        target_url: (if $chatgpt_target_url == "" then null else $chatgpt_target_url end),
+        target_ws_url: (if $chatgpt_target_ws_url == "" then null else $chatgpt_target_ws_url end),
+        cooldown: {
+          active: $cooldown_active,
+          reason_code: (if $cooldown_reason_code == "" then null else $cooldown_reason_code end),
+          until: (if $cooldown_until == "" then null else $cooldown_until end),
+          remaining_seconds: $cooldown_remaining_seconds
+        },
+        probe: {
+          ok: $chatgpt_probe_ok,
+          executed: $chatgpt_probe_executed,
+          cached: $chatgpt_probe_cached,
+          skipped_reason: (if $chatgpt_probe_skipped_reason == "" then null else $chatgpt_probe_skipped_reason end),
+          title: (if $chatgpt_probe_title == "" then null else $chatgpt_probe_title end),
+          ready_state: (if $chatgpt_probe_ready_state == "" then null else $chatgpt_probe_ready_state end),
+          network_online: $chatgpt_probe_network_online,
+          composer_found: $chatgpt_probe_composer_found,
+          login_found: $chatgpt_probe_login_found,
+          captcha_found: $chatgpt_probe_captcha_found,
+          verify_human_found: $chatgpt_probe_verify_human_found,
+          blocked_found: $chatgpt_probe_blocked_found
+        }
+      }
+    },
+    recovery: {
+      eligible: $recovery_eligible,
+      reason_code: $recovery_reason_code
+    },
+    errors: $errors
+  }' > "$tmp"
+mv "$tmp" "$health_file"
+cat "$health_file"
+exit "$exit_code"

@@ -1,0 +1,99 @@
+set -euo pipefail
+
+service_name="chromedevtoolprotocol-service"
+schema_version=1
+
+: "${CHROME_SERVICE_SEED_PROFILE:=$HOME/.local/share/chromium-headful-profile}"
+: "${CHROME_SERVICE_PUBLISHED_SNAPSHOT:=$HOME/.secret/hq/chromium-cdp-profile.snapshot}"
+: "${XDG_RUNTIME_DIR:=/run/user/$(id -u)}"
+
+seed_path="$(realpath -m "$CHROME_SERVICE_SEED_PROFILE")"
+published_path="$(realpath -m "$CHROME_SERVICE_PUBLISHED_SNAPSHOT")"
+published_dir="$(dirname "$published_path")"
+staging_path="$published_path.staging.$$"
+previous_path="$published_path.previous"
+lock_dir="$XDG_RUNTIME_DIR/$service_name"
+lock_file="$lock_dir/profile-publish.lock"
+timestamp="$(date --iso-8601=seconds)"
+
+mkdir -p "$published_dir" "$lock_dir"
+exec 9>"$lock_file"
+flock -x 9
+
+emit_json() {
+  local status="$1"
+  local reason_code="$2"
+  local output_file="$3"
+
+  jq -n \
+    --argjson schema_version "$schema_version" \
+    --arg action "profile-publish" \
+    --arg status "$status" \
+    --arg reason_code "$reason_code" \
+    --arg seed_path "$seed_path" \
+    --arg published_path "$published_path" \
+    --arg generated_at "$timestamp" \
+    '{
+      schema_version: $schema_version,
+      action: $action,
+      status: $status,
+      reason_code: $reason_code,
+      seed_path: $seed_path,
+      published_snapshot_path: $published_path,
+      seed_kind: "automation-headful-seed",
+      published_snapshot_kind: "published-auth-snapshot",
+      generated_at: $generated_at
+    }' > "$output_file"
+}
+
+finish() {
+  local status="$1"
+  local reason_code="$2"
+  local exit_code="$3"
+  local tmp
+
+  tmp="$(mktemp "$published_dir/profile-publish.XXXXXX")"
+  emit_json "$status" "$reason_code" "$tmp"
+  cat "$tmp"
+  rm -f "$tmp"
+  rm -rf "$staging_path"
+  exit "$exit_code"
+}
+
+if [ ! -d "$seed_path" ]; then
+  finish "config-error" "SEED_PROFILE_MISSING" 30
+fi
+
+if [ "$seed_path" = "$published_path" ]; then
+  finish "config-error" "DIRECT_REUSE_FORBIDDEN" 31
+fi
+
+for seed_lock in \
+  "$seed_path/DevToolsActivePort" \
+  "$seed_path/SingletonCookie" \
+  "$seed_path/SingletonLock" \
+  "$seed_path/SingletonSocket"
+do
+  if [ -e "$seed_lock" ]; then
+    finish "config-error" "SEED_PROFILE_BUSY" 32
+  fi
+done
+
+trap 'rm -rf "$staging_path"' EXIT
+rm -rf "$staging_path"
+mkdir -p "$staging_path"
+cp -a "$seed_path/." "$staging_path/"
+rm -rf \
+  "$staging_path/DevToolsActivePort" \
+  "$staging_path/SingletonCookie" \
+  "$staging_path/SingletonLock" \
+  "$staging_path/SingletonSocket"
+chmod -R u=rwX,go= "$staging_path"
+
+rm -rf "$previous_path"
+if [ -e "$published_path" ]; then
+  mv "$published_path" "$previous_path"
+fi
+mv "$staging_path" "$published_path"
+
+finish "green" "OK" 0

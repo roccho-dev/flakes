@@ -5,6 +5,7 @@
     ./modules/packages.nix
     ../shell/hm.nix
     ../opencode/hm.nix
+    ../chrome/hm.nix
   ];
 
   # Home Manager needs this
