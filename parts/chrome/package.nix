@@ -23,6 +23,7 @@ let
     runtimeInputs = with pkgs; [
       chromium
       coreutils
+      util-linux
     ];
     text = builtins.readFile ./bin/chromedevtoolprotocol-service-profile-bootstrap;
   };
@@ -53,6 +54,7 @@ let
       chromium
       coreutils
       profileSync
+      util-linux
     ];
     text = builtins.readFile ./bin/chromedevtoolprotocol-service;
   };

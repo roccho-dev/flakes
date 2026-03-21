@@ -4,6 +4,7 @@ set -euo pipefail
 : "${CHROME_SERVICE_APP_MATCH:=https://chatgpt.com}"
 : "${CHROME_SERVICE_START_URL:=https://chatgpt.com}"
 : "${CHROME_SERVICE_PUBLISHED_SNAPSHOT:=$HOME/.secret/hq/chromium-cdp-profile.snapshot}"
+: "${CHROME_SERVICE_HEALTH_SCOPE:=app}"
 
 if [ ! -d "$CHROME_SERVICE_PUBLISHED_SNAPSHOT" ]; then
   jq -n \
@@ -39,6 +40,7 @@ export XDG_RUNTIME_DIR="$tmp_root/run"
 CHROME_SERVICE_PORT="$(choose_port)"
 export CHROME_SERVICE_PORT
 export CHROME_SERVICE_SOURCE_PROFILE="$CHROME_SERVICE_PUBLISHED_SNAPSHOT"
+export CHROME_SERVICE_HEALTH_SCOPE
 
 mkdir -p "$HOME" "$XDG_STATE_HOME" "$XDG_RUNTIME_DIR"
 

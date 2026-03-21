@@ -22,7 +22,12 @@ let
     "CHROME_SERVICE_PASSWORD_STORE=basic"
     "CHROME_SERVICE_DISABLE_AUTOMATION=1"
     "CHROME_SERVICE_SPOOF_USER_AGENT=1"
+    "CHROME_SERVICE_HEALTH_SCOPE=app"
+    "CHROME_SERVICE_APP_LOGIN_COOLDOWN_SEC=300"
+    "CHROME_SERVICE_APP_CHALLENGE_COOLDOWN_SEC=3600"
   ];
+
+  coreHealthEnvironment = commonEnvironment ++ [ "CHROME_SERVICE_HEALTH_SCOPE=core" ];
 
   cleanupPid = pkgs.writeShellScript "chromedevtoolprotocol-service-cleanup-pid" ''
     set -euo pipefail
@@ -72,6 +77,17 @@ in
 
   systemd.user.services.chromedevtoolprotocol-service-health = {
     Unit.Description = "Probe Chrome CDP runtime health";
+
+    Service = {
+      Type = "oneshot";
+      WorkingDirectory = "/home/nixos";
+      ExecStart = "${mod.health}/bin/chromedevtoolprotocol-service-health";
+      Environment = coreHealthEnvironment;
+    };
+  };
+
+  systemd.user.services.chromedevtoolprotocol-service-app-health = {
+    Unit.Description = "Probe ChatGPT app readiness on the Chrome runtime";
 
     Service = {
       Type = "oneshot";

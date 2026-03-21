@@ -4,13 +4,24 @@ set -euo pipefail
 : "${CHROME_SERVICE_BOOTSTRAP_PORT:=9226}"
 : "${CHROME_SERVICE_BOOTSTRAP_URL:=https://chatgpt.com}"
 : "${CHROME_SERVICE_SEED_PROFILE:=$HOME/.local/share/chromium-headful-profile}"
+: "${CHROME_SERVICE_PUBLISHED_SNAPSHOT:=$HOME/.secret/hq/chromium-cdp-profile.snapshot}"
 : "${CHROME_SERVICE_PASSWORD_STORE:=basic}"
 : "${CHROME_SERVICE_DISABLE_AUTOMATION:=1}"
 : "${CHROME_SERVICE_SPOOF_USER_AGENT:=1}"
 : "${CHROME_SERVICE_USER_AGENT:=}"
 
+guard_dir="$(dirname "$CHROME_SERVICE_PUBLISHED_SNAPSHOT")"
+guard_file="$guard_dir/.chromedevtoolprotocol-service.session.lock"
+
 mkdir -p "$CHROME_SERVICE_SEED_PROFILE"
 chmod 700 "$CHROME_SERVICE_SEED_PROFILE"
+mkdir -p "$guard_dir"
+
+exec 8>"$guard_file"
+if ! flock -n 8; then
+  printf '%s\n' "SINGLE_SESSION_LOCKED" >&2
+  exit 42
+fi
 
 rm -rf \
   "$CHROME_SERVICE_SEED_PROFILE/DevToolsActivePort" \

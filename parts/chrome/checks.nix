@@ -7,6 +7,9 @@
         nativeBuildInputs = [ pkgs.jq ];
       } ''
         jq -e '.schema_version == 1' ${./config/health.json} > /dev/null
+        jq -e '.probe_stratification.systemd_timer_scope == "core"' ${./config/health.json} > /dev/null
+        jq -e '.cooldown.login_required_seconds == 300' ${./config/health.json} > /dev/null
+        jq -e '.cooldown.challenge_blocked_seconds == 3600' ${./config/health.json} > /dev/null
         jq -e '.probe_failed_requires_reason_code == true' ${./config/health.json} > /dev/null
         jq -e '.systemd_green_source == "core.status"' ${./config/health.json} > /dev/null
 

@@ -10,13 +10,21 @@ service_name="chromedevtoolprotocol-service"
 : "${CHROME_SERVICE_DISABLE_AUTOMATION:=1}"
 : "${CHROME_SERVICE_SPOOF_USER_AGENT:=1}"
 : "${CHROME_SERVICE_USER_AGENT:=}"
+: "${CHROME_SERVICE_PUBLISHED_SNAPSHOT:=${CHROME_SERVICE_SOURCE_PROFILE:-$HOME/.secret/hq/chromium-cdp-profile.snapshot}}"
 : "${XDG_STATE_HOME:=$HOME/.local/state}"
 
 state_dir="$XDG_STATE_HOME/$service_name"
 runtime_profile="$state_dir/runtime/profile.current"
 pid_file="$state_dir/service.pid"
+guard_dir="$(dirname "$CHROME_SERVICE_PUBLISHED_SNAPSHOT")"
+guard_file="$guard_dir/.${service_name}.session.lock"
 
-mkdir -p "$state_dir"
+mkdir -p "$state_dir" "$guard_dir"
+exec 8>"$guard_file"
+if ! flock -n 8; then
+  printf '%s\n' "SINGLE_SESSION_LOCKED" >&2
+  exit 42
+fi
 
 if [ ! -d "$runtime_profile" ]; then
   chromedevtoolprotocol-service-profile-sync > /dev/null

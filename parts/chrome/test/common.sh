@@ -66,10 +66,15 @@ choose_http_port() {
 }
 
 run_health_capture() {
+  run_health_capture_scope app
+}
+
+run_health_capture_scope() {
+  local scope="$1"
   local rc
 
   set +e
-  HEALTH_JSON="$(chromedevtoolprotocol-service-health 2> /dev/null)"
+  HEALTH_JSON="$(CHROME_SERVICE_HEALTH_SCOPE="$scope" chromedevtoolprotocol-service-health 2> /dev/null)"
   rc=$?
   set -e
 
