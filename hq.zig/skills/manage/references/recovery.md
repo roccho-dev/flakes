@@ -65,3 +65,7 @@ If the scope is evidence-driven, also return partial evidence tables.
 
 If the scope is design-driven, also return a merge table updated with the best
 available objection or stress result.
+
+## Next Entry Point
+
+- Read `gpt_request_contracts.md`.

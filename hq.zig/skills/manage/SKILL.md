@@ -31,6 +31,15 @@ This skill is structural and dynamic:
 - only the control model lives here
 - session names, URLs, claim IDs, and source assignments belong to runtime state
 
+For the full principle set, read `references/principles/index.md`.
+
+For lane-specific freezes and non-goals, read `lanes/architecture-boundary.md`,
+`lanes/build-fix.md`, and `lanes/source-management.md` as needed.
+
+## Next Entry Point
+
+- Read `RUNBOOK.md`.
+
 ## Runtime Model
 
 ```text
@@ -246,3 +255,7 @@ backend path into execution.
 - `references/recovery.md`
 - `references/examples.md`
 - `references/gpt_request_contracts.md`
+- `references/principles/index.md`
+- `lanes/architecture-boundary.md`
+- `lanes/build-fix.md`
+- `lanes/source-management.md`
