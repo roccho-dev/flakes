@@ -1,7 +1,10 @@
 {
   "schema_version": 1,
+  "seed_profile_kind": "automation-headful-seed",
+  "published_snapshot_kind": "published-auth-snapshot",
   "source_profile_kind": "snapshot",
   "direct_reuse": "forbidden",
+  "bootstrap_mode": "manual-login-in-browser",
   "sync_mode": "fresh-copy",
   "publish_mode": "atomic-rename",
   "cleanup_entries": [

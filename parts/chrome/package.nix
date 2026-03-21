@@ -18,6 +18,25 @@
 let
   contract = import ./lib.nix;
 
+  profileBootstrap = pkgs.writeShellApplication {
+    name = "chromedevtoolprotocol-service-profile-bootstrap";
+    runtimeInputs = with pkgs; [
+      chromium
+      coreutils
+    ];
+    text = builtins.readFile ./bin/chromedevtoolprotocol-service-profile-bootstrap;
+  };
+
+  profilePublish = pkgs.writeShellApplication {
+    name = "chromedevtoolprotocol-service-profile-publish";
+    runtimeInputs = with pkgs; [
+      coreutils
+      jq
+      util-linux
+    ];
+    text = builtins.readFile ./bin/chromedevtoolprotocol-service-profile-publish;
+  };
+
   profileSync = pkgs.writeShellApplication {
     name = "chromedevtoolprotocol-service-profile-sync";
     runtimeInputs = with pkgs; [
@@ -60,15 +79,31 @@ let
     ];
     text = builtins.readFile ./bin/chromedevtoolprotocol-service-recover;
   };
+
+  profileStatus = pkgs.writeShellApplication {
+    name = "chromedevtoolprotocol-service-profile-status";
+    runtimeInputs = with pkgs; [
+      coreutils
+      curl
+      health
+      jq
+      service
+      util-linux
+    ];
+    text = builtins.readFile ./bin/chromedevtoolprotocol-service-profile-status;
+  };
 in
 rec {
-  inherit health profileSync recover service;
+  inherit health profileBootstrap profilePublish profileStatus profileSync recover service;
 
   suite = pkgs.symlinkJoin {
     name = "${contract.serviceName}-suite";
     paths = [
       service
       health
+      profileBootstrap
+      profilePublish
+      profileStatus
       profileSync
       recover
     ];

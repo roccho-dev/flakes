@@ -5,9 +5,13 @@
   defaultEnv = {
     CHROME_SERVICE_ADDR = "127.0.0.1";
     CHROME_SERVICE_PORT = "9222";
+    CHROME_SERVICE_SEED_PROFILE = "$HOME/.local/share/chromium-headful-profile";
+    CHROME_SERVICE_PUBLISHED_SNAPSHOT = "$HOME/.secret/hq/chromium-cdp-profile.snapshot";
     CHROME_SERVICE_SOURCE_PROFILE = "$HOME/.secret/hq/chromium-cdp-profile.snapshot";
     CHROME_SERVICE_APP_MATCH = "https://chatgpt.com";
     CHROME_SERVICE_START_URL = "about:blank";
+    CHROME_SERVICE_BOOTSTRAP_URL = "https://chatgpt.com";
+    CHROME_SERVICE_BOOTSTRAP_PORT = "9226";
     CHROME_SERVICE_HEADLESS = "1";
     CHROME_SERVICE_ALLOW_RECOVER = "0";
     CHROME_SERVICE_PASSWORD_STORE = "basic";

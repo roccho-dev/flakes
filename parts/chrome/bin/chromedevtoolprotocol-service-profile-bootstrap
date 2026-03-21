@@ -1,0 +1,50 @@
+set -euo pipefail
+
+: "${CHROME_SERVICE_ADDR:=127.0.0.1}"
+: "${CHROME_SERVICE_BOOTSTRAP_PORT:=9226}"
+: "${CHROME_SERVICE_BOOTSTRAP_URL:=https://chatgpt.com}"
+: "${CHROME_SERVICE_SEED_PROFILE:=$HOME/.local/share/chromium-headful-profile}"
+: "${CHROME_SERVICE_PASSWORD_STORE:=basic}"
+: "${CHROME_SERVICE_DISABLE_AUTOMATION:=1}"
+: "${CHROME_SERVICE_SPOOF_USER_AGENT:=1}"
+: "${CHROME_SERVICE_USER_AGENT:=}"
+
+mkdir -p "$CHROME_SERVICE_SEED_PROFILE"
+chmod 700 "$CHROME_SERVICE_SEED_PROFILE"
+
+rm -rf \
+  "$CHROME_SERVICE_SEED_PROFILE/DevToolsActivePort" \
+  "$CHROME_SERVICE_SEED_PROFILE/SingletonCookie" \
+  "$CHROME_SERVICE_SEED_PROFILE/SingletonLock" \
+  "$CHROME_SERVICE_SEED_PROFILE/SingletonSocket"
+
+extra=(
+  --remote-debugging-address="$CHROME_SERVICE_ADDR"
+  --remote-debugging-port="$CHROME_SERVICE_BOOTSTRAP_PORT"
+  --user-data-dir="$CHROME_SERVICE_SEED_PROFILE"
+  --no-first-run
+  --no-default-browser-check
+  --disable-dev-shm-usage
+)
+
+if [ "$CHROME_SERVICE_DISABLE_AUTOMATION" = "1" ]; then
+  extra+=(--disable-blink-features=AutomationControlled)
+fi
+
+if [ "$CHROME_SERVICE_SPOOF_USER_AGENT" = "1" ] && [ -z "$CHROME_SERVICE_USER_AGENT" ]; then
+  chrome_version="$(chromium --product-version 2> /dev/null || true)"
+  if [ -z "$chrome_version" ]; then
+    chrome_version="146.0.0.0"
+  fi
+  CHROME_SERVICE_USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chrome_version} Safari/537.36"
+fi
+
+if [ -n "$CHROME_SERVICE_PASSWORD_STORE" ]; then
+  extra+=(--password-store="$CHROME_SERVICE_PASSWORD_STORE")
+fi
+
+if [ -n "$CHROME_SERVICE_USER_AGENT" ]; then
+  extra+=(--user-agent="$CHROME_SERVICE_USER_AGENT")
+fi
+
+exec chromium "${extra[@]}" "$CHROME_SERVICE_BOOTSTRAP_URL" "$@"

@@ -1,0 +1,60 @@
+set -euo pipefail
+
+: "${CHROME_SERVICE_ADDR:=127.0.0.1}"
+: "${CHROME_SERVICE_APP_MATCH:=https://chatgpt.com}"
+: "${CHROME_SERVICE_START_URL:=https://chatgpt.com}"
+: "${CHROME_SERVICE_PUBLISHED_SNAPSHOT:=$HOME/.secret/hq/chromium-cdp-profile.snapshot}"
+
+if [ ! -d "$CHROME_SERVICE_PUBLISHED_SNAPSHOT" ]; then
+  jq -n \
+    --argjson schema_version 1 \
+    --arg action "profile-status" \
+    --arg status "config-error" \
+    --arg reason_code "PUBLISHED_SNAPSHOT_MISSING" \
+    --arg published_snapshot_path "$CHROME_SERVICE_PUBLISHED_SNAPSHOT" \
+    '{
+      schema_version: $schema_version,
+      action: $action,
+      status: $status,
+      reason_code: $reason_code,
+      published_snapshot_path: $published_snapshot_path
+    }'
+  exit 30
+fi
+
+tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/chrome-service-profile-status.XXXXXX")"
+trap 'if [ -n "${svc_pid:-}" ] && kill -0 "$svc_pid" 2> /dev/null; then kill "$svc_pid" 2> /dev/null || true; wait "$svc_pid" 2> /dev/null || true; fi; rm -rf "$tmp_root"' EXIT
+
+choose_port() {
+  local port=39900
+  while curl -fsS --max-time 1 "http://127.0.0.1:$port/json/version" > /dev/null 2>&1; do
+    port=$((port + 1))
+  done
+  printf '%s' "$port"
+}
+
+export HOME="$tmp_root/home"
+export XDG_STATE_HOME="$tmp_root/state"
+export XDG_RUNTIME_DIR="$tmp_root/run"
+CHROME_SERVICE_PORT="$(choose_port)"
+export CHROME_SERVICE_PORT
+export CHROME_SERVICE_SOURCE_PROFILE="$CHROME_SERVICE_PUBLISHED_SNAPSHOT"
+
+mkdir -p "$HOME" "$XDG_STATE_HOME" "$XDG_RUNTIME_DIR"
+
+chromedevtoolprotocol-service > "$tmp_root/service.stdout" 2> "$tmp_root/service.stderr" &
+svc_pid=$!
+
+last_json=''
+i=0
+while [ "$i" -lt 120 ]; do
+  if last_json="$(chromedevtoolprotocol-service-health 2> /dev/null)"; then
+    if printf '%s' "$last_json" | jq -e '.core.status == "green"' > /dev/null; then
+      break
+    fi
+  fi
+  i=$((i + 1))
+  sleep 1
+done
+
+printf '%s\n' "$last_json"

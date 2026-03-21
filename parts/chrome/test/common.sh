@@ -20,6 +20,8 @@ setup_test_env() {
   export CHROME_SERVICE_START_URL="about:blank"
   export CHROME_SERVICE_HEADLESS="1"
   export CHROME_SERVICE_ALLOW_RECOVER="0"
+  export CHROME_SERVICE_SEED_PROFILE="$TMP_ROOT/seed-profile"
+  export CHROME_SERVICE_PUBLISHED_SNAPSHOT="$TMP_ROOT/published-snapshot"
   export CHROME_SERVICE_SOURCE_PROFILE="$TMP_ROOT/source-profile"
 
   mkdir -p "$HOME" "$XDG_STATE_HOME" "$XDG_RUNTIME_DIR"
@@ -97,6 +99,35 @@ run_sync_capture() {
 
   export SYNC_JSON
   export SYNC_RC="$rc"
+}
+
+run_publish_capture() {
+  local rc
+
+  set +e
+  PUBLISH_JSON="$(chromedevtoolprotocol-service-profile-publish 2> /dev/null)"
+  rc=$?
+  set -e
+
+  export PUBLISH_JSON
+  export PUBLISH_RC="$rc"
+}
+
+run_profile_status_capture() {
+  local rc
+
+  set +e
+  PROFILE_STATUS_JSON="$(chromedevtoolprotocol-service-profile-status 2> /dev/null)"
+  rc=$?
+  set -e
+
+  export PROFILE_STATUS_JSON
+  export PROFILE_STATUS_RC="$rc"
+}
+
+make_seed_profile() {
+  rm -rf "$CHROME_SERVICE_SEED_PROFILE"
+  mkdir -p "$CHROME_SERVICE_SEED_PROFILE"
 }
 
 start_service() {

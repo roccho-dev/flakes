@@ -26,6 +26,9 @@
         };
 
       profileSync = mkTest "test-chrome-service-profile-sync-e2e" "profile-sync-e2e.sh";
+      profilePublish = mkTest "test-chrome-service-profile-publish-e2e" "profile-publish-e2e.sh";
+      profileStatus = mkTest "test-chrome-service-profile-status-e2e" "profile-status-e2e.sh";
+      profileStatusRepeat = mkTest "test-chrome-service-profile-status-repeat-e2e" "profile-status-repeat-e2e.sh";
       runtime = mkTest "test-chrome-service-runtime-e2e" "runtime-e2e.sh";
       authState = mkTest "test-chrome-service-auth-state-e2e" "auth-state-e2e.sh";
       recoverGate = mkTest "test-chrome-service-recover-gate-e2e" "recover-gate-e2e.sh";
@@ -42,6 +45,24 @@
         type = "app";
         program = "${runtime}/bin/test-chrome-service-runtime-e2e";
         meta.description = "E2E coverage for copied-profile launch and health";
+      };
+
+      apps.test-chrome-service-profile-publish-e2e = {
+        type = "app";
+        program = "${profilePublish}/bin/test-chrome-service-profile-publish-e2e";
+        meta.description = "E2E coverage for seed-to-snapshot publish";
+      };
+
+      apps.test-chrome-service-profile-status-e2e = {
+        type = "app";
+        program = "${profileStatus}/bin/test-chrome-service-profile-status-e2e";
+        meta.description = "E2E coverage for published snapshot status";
+      };
+
+      apps.test-chrome-service-profile-status-repeat-e2e = {
+        type = "app";
+        program = "${profileStatusRepeat}/bin/test-chrome-service-profile-status-repeat-e2e";
+        meta.description = "E2E coverage for repeated published snapshot reuse";
       };
 
       apps.test-chrome-service-auth-state-e2e = {
@@ -63,6 +84,9 @@
       };
 
       packages.test-chrome-service-profile-sync-e2e = profileSync;
+      packages.test-chrome-service-profile-publish-e2e = profilePublish;
+      packages.test-chrome-service-profile-status-e2e = profileStatus;
+      packages.test-chrome-service-profile-status-repeat-e2e = profileStatusRepeat;
       packages.test-chrome-service-runtime-e2e = runtime;
       packages.test-chrome-service-auth-state-e2e = authState;
       packages.test-chrome-service-recover-gate-e2e = recoverGate;
