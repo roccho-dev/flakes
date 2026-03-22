@@ -19,7 +19,10 @@ skill, only partially reflected, or still missing.
 | runtime declaration | declare toolchain/platform/runtime expectations explicitly | missing | `required-inputs.md` |
 | approved-source governance | use approved sources only; keep role boundaries explicit | existing | `source-governance.md` |
 | one-shot access default | send once and collect once unless polling is approved | existing | `source-governance.md` |
+| account-safe polling | bounded polling with jitter, cap, and burden guards | missing | `../polling_contracts.md` |
 | runtime vs inference split | keep confirmed runtime facts separate from inference | partial | `evidence-separation.md` |
+| downstream local truth gate | self-check is not final done when downstream local confirm exists | missing | `../downstream_local_confirm_contracts.md` |
+| target session contract | exact role, artifacts, and access contract are explicit | missing | `../target_session_contracts.md` |
 | dissent first | ask for strongest objection before commitment | existing | `dissent.md` |
 | staged completion | work through explicit completion stages | missing | `staged-completion.md` |
 | phase report contract | each completed phase reports the same core fields | missing | `staged-completion.md` |

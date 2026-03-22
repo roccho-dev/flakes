@@ -104,6 +104,8 @@ Access from `oc` to `gpt` is controlled, not free-form.
 - make transport/runtime blockers explicit in state
 - do not hide repeated access behind vague status text
 
+If polling is explicitly approved, follow `references/polling_contracts.md`.
+
 ## Use This Skill When
 
 - multiple discussion managers must be coordinated
@@ -118,6 +120,11 @@ Read `references/registries.md`.
 
 When `gpt` request quality matters for execution-grade output, also read
 `references/gpt_request_contracts.md`.
+
+When target-session role contracts or downstream local confirmation matter, also read:
+
+- `references/target_session_contracts.md`
+- `references/downstream_local_confirm_contracts.md`
 
 At minimum, runtime must maintain:
 
@@ -192,6 +199,9 @@ The main state table is not a task list.
 - When a decision depends on what specific `gpt` sources said, require
   source-readable per-source reporting, not merge-only reporting.
 - Discussion is not done until at least one backend path executes.
+- When a downstream local confirm stream exists, self-check alone is not done.
+- When a downstream local confirm stream exists, done requires downstream local
+  green or an explicit scoped gate decision.
 
 ## Recovery
 
@@ -255,6 +265,9 @@ backend path into execution.
 - `references/recovery.md`
 - `references/examples.md`
 - `references/gpt_request_contracts.md`
+- `references/polling_contracts.md`
+- `references/downstream_local_confirm_contracts.md`
+- `references/target_session_contracts.md`
 - `references/principles/index.md`
 - `lanes/architecture-boundary.md`
 - `lanes/build-fix.md`
