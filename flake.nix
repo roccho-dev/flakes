@@ -21,6 +21,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
     };
+
+    amp.url = "path:./flakes/amp";
   };
 
   outputs =
@@ -44,6 +46,7 @@
         ./parts/hq.zig/default.nix
         ./parts/qjs.zig/default.nix
         ./parts/languages/default.nix
+        ./parts/amp/default.nix
         ./parts/repo-checks.nix
         ./parts/tests/apps.nix
         ./parts/tests/help-app.nix
