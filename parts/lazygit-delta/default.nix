@@ -18,6 +18,4 @@
         cfgFile = mod.cfgFile;
       };
     };
-
-  flake.lib.mkLazygitDelta = import ./module.nix;
 }

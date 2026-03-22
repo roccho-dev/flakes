@@ -37,6 +37,7 @@
         ./parts/home-manager.nix
         ./parts/opencode/default.nix
         ./parts/helix/default.nix
+        ./parts/flake-lib/default.nix
         ./parts/lazygit-delta/default.nix
         ./parts/chrome/default.nix
         ./parts/cdp/default.nix
