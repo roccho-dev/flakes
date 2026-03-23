@@ -461,8 +461,8 @@ COMMIT;
     const checkpoint = saveCheckpoint(dbPath, {
       orchestratorSessionId: sessionId,
       checkpointKind: 'reconcile',
-      localObservedRev,
-      cdpObservedRev,
+      localObservedRev: observedLocalRev,
+      cdpObservedRev: observedCdpRev,
       state,
       createdAtMs: startedAt,
       reconcileState: 'clean',
