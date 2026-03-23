@@ -24,16 +24,38 @@ CREATE TABLE IF NOT EXISTS cdp_messages (
   PRIMARY KEY (session_id, ordinal)
 );`;
 
+function tmpPath(prefix) {
+  return `/tmp/${prefix}_${os.getpid()}_${Math.floor(os.now() * 1000)}`;
+}
+
 function execSql(dbPath, sql) {
-  const proc = os.spawn('sqlite3', [dbPath], { block: true, pipes: ['stdin', 'stdout', 'stderr'] });
-  proc.stdin.write(sql);
-  proc.stdin.close();
-  const rc = proc.wait();
+  const outPath = tmpPath("sqlite_out");
+  const inPath = tmpPath("sqlite_in");
+  
+  std.writeFile(inPath, sql);
+  
+  const outFd = os.open(outPath, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600);
+  const inFd = os.open(inPath, os.O_RDONLY, 0);
+  
+  const rc = os.exec(["sqlite3", dbPath], {
+    block: true,
+    stdin: inFd,
+    stdout: outFd,
+    stderr: 2
+  });
+  
+  os.close(outFd);
+  os.close(inFd);
+  
+  const output = std.loadFile(outPath);
+  os.remove(outPath);
+  os.remove(inPath);
+  
   if (rc !== 0) {
-    const err = proc.stderr.read();
-    throw new Error('sqlite3 error rc=' + rc + ' err=' + err);
+    throw new Error('sqlite3 error rc=' + rc + ' output=' + output);
   }
-  return proc.stdout.read();
+  
+  return output;
 }
 
 function initDb(dbPath) {
