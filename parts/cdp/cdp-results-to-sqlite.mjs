@@ -123,4 +123,4 @@ if (isMain) {
   }
 }
 
-export { initDb, saveCdpResultsTo, saveCdpResults, parseArgs, DEFAULT_DB_PATH };
+export { initDb, saveCdpResultsTo, saveCdpResults, parseArgs };
