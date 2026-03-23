@@ -94,3 +94,66 @@ export function cdpEvaluate(wsUrl, expression, opts) {
   };
   return cdpCall(wsUrl, req, o.timeoutMs || 60000);
 }
+
+export function isHeadlessMode() {
+  return std.getenv("HQ_CHROME_HEADLESS") === "1";
+}
+
+export function getChromeProfileDir() {
+  return std.getenv("HQ_CHROME_PROFILE_DIR") || (std.getenv("HOME") + "/.secret/hq/chromium-cdp-profile");
+}
+
+export function detectLoginState(wsUrl) {
+  const expr = `(() => {
+    const body = document.body ? document.body.innerText.slice(0, 1000) : "";
+    const title = document.title || "";
+    const hasChatGPTLoggedIn = !!document.querySelector("[data-testid='conversations-list']") ||
+                               !!document.querySelector("nav[aria-label='Main navigation']");
+    const isCloudflare = title.includes("Just a moment") || body.includes("Cloudflare");
+    const isLoginPage = body.includes("Sign in") || body.includes("login") || title.includes("Log in");
+    return {
+      logged_in: hasChatGPTLoggedIn,
+      cloudflare: isCloudflare,
+      login_page: isLoginPage,
+      title: document.title,
+      url: location.href,
+    };
+  })()`;
+
+  try {
+    const resp = cdpEvaluate(wsUrl, expr, { timeoutMs: 30000 });
+    return resp?.result?.result?.value || null;
+  } catch {
+    return null;
+  }
+}
+
+export function waitForLogin(wsUrl, opts) {
+  const o = opts || {};
+  const intervalMin = o.intervalMin || 2000;
+  const intervalMax = o.intervalMax || 5000;
+  const maxTries = o.maxTries || 30;
+  const maxDurationMs = o.maxDurationMs || 120000;
+
+  const startTime = os.now();
+  const deadline = startTime + maxDurationMs;
+
+  for (let i = 0; i < maxTries; i++) {
+    const state = detectLoginState(wsUrl);
+    if (state && state.logged_in && !state.cloudflare && !state.login_page) {
+      return { ok: true, state, tries: i + 1 };
+    }
+    if (os.now() >= deadline) break;
+    const interval = intervalMin + Math.random() * (intervalMax - intervalMin);
+    sleepMs(interval);
+  }
+
+  const finalState = detectLoginState(wsUrl);
+  return {
+    ok: false,
+    state: finalState,
+    tries: maxTries,
+    reason: finalState?.cloudflare ? "cloudflare" :
+            finalState?.login_page ? "login_required" : "timeout"
+  };
+}
