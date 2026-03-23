@@ -16,6 +16,8 @@ import {
   getDefaultAddr,
   getDefaultPort,
   sleepMs,
+  preflightCheck,
+  CdpError,
 } from "./chromium-cdp.lib.mjs";
 
 import { waitForDomModelExpr } from "./hq-dom-model.mjs";
@@ -220,12 +222,22 @@ function main(argv) {
 
   if (args.outDir) ensureDir(args.outDir);
 
-  // Ensure CDP is up.
-  cdpVersion(args.addr, args.port);
+  // Preflight check with guided errors
+  const check = preflightCheck(args.addr, args.port, args.url);
 
-  const targets = cdpList(args.addr, args.port);
-  const target = pickTarget(targets, args);
-  const wsUrl = target.webSocketDebuggerUrl;
+  if (!check.ok) {
+    const err = check.error;
+    if (err instanceof CdpError) {
+      std.out.puts(JSON.stringify(err.toJSON(), null, 2) + "\n");
+      std.out.flush();
+    } else {
+      std.err.puts(String(err && err.stack ? err.stack : err) + "\n");
+      std.err.flush();
+    }
+    return 1;
+  }
+
+  const { tab, wsUrl } = check;
 
   let nextId = 1;
   const call = (method, params, timeoutMs) => {
@@ -398,7 +410,12 @@ function main(argv) {
 try {
   std.exit(main(scriptArgs));
 } catch (e) {
-  std.err.puts(String(e && e.stack ? e.stack : e) + "\n");
-  std.err.flush();
+  if (e instanceof CdpError) {
+    std.out.puts(JSON.stringify(e.toJSON(), null, 2) + "\n");
+    std.out.flush();
+  } else {
+    std.err.puts(String(e && e.stack ? e.stack : e) + "\n");
+    std.err.flush();
+  }
   std.exit(1);
 }
