@@ -8,6 +8,7 @@ export class CdpError extends Error {
     super(detail);
     this.name = "CdpError";
     this.code = code;
+    this.detail = detail;
     this.docRef = docRef || `${DOC_BASE}#${code}`;
     this.hint = hint;
     this.ok = false;
@@ -132,9 +133,9 @@ export function preflightCheck(addr, port, targetUrl, opts) {
   const waitMs = o.waitMs || 8000;
   const timeoutMs = o.timeoutMs || 60000;
 
-  // Step 1: Browser running?
+  // Step 1: Browser running? (using cdp-bridge which is available in nix shell)
   try {
-    curlJson(`http://${addr}:${port}/json/version`);
+    cdpBridgeJson(["version", "--addr", addr, "--port", String(port)]);
   } catch (err) {
     return {
       ok: false,
@@ -146,10 +147,10 @@ export function preflightCheck(addr, port, targetUrl, opts) {
     };
   }
 
-  // Step 2: CDP available?
+  // Step 2: CDP available? (using cdp-bridge list)
   let targets;
   try {
-    targets = curlJson(`http://${addr}:${port}/json/list`);
+    targets = cdpBridgeJson(["list", "--addr", addr, "--port", String(port)]);
   } catch (err) {
     return {
       ok: false,
