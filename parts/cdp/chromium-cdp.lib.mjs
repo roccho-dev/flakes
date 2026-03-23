@@ -8,6 +8,7 @@ export class CdpError extends Error {
     super(detail);
     this.name = "CdpError";
     this.code = code;
+    this.detail = detail;
     this.docRef = docRef || `${DOC_BASE}#${code}`;
     this.hint = hint;
     this.ok = false;
