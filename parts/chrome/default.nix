@@ -52,6 +52,4 @@
         program = "${mod.recover}/bin/chromedevtoolprotocol-service-recover";
       };
     };
-
-  flake.lib.chromedevtoolprotocolService = import ./lib.nix;
 }
